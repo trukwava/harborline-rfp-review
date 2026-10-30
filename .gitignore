@@ -1,0 +1,13 @@
+node_modules/
+data/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Never publish developer/runtime state
+.env
+.env.local
+*.log
+*.sqlite
+*.sqlite-journal
+.DS_Store

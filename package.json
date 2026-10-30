@@ -1,0 +1,21 @@
+{
+  "name": "harbor-rfp-review",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Evidence-first nonprofit solicitation intake demo",
+  "scripts": {
+    "dev": "node --experimental-strip-types src/server.ts",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "test:visual": "python tools/browser_visual_check.py",
+    "fixtures": "python tools/make_fixtures.py",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=22.16"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "@types/node": "^22.0.0"
+  }
+}
