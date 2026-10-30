@@ -1,36 +1,37 @@
-# Public GitHub publication — pending remote creation
+# Public GitHub publication — complete
 
-The user authorized a **public** GitHub repository. This environment could not create one: the linked GitHub integration lacks a repository-creation action, GitHub CLI is unavailable, and outbound DNS is disabled. The project has a complete local `main` branch commit and a distributable source archive; no publication is claimed.
+The user-created repository [trukwava/harborline-rfp-review](https://github.com/trukwava/harborline-rfp-review) is **public**. The Evidence Edition v0.2 application was published to its `main` branch through the authenticated GitHub repository API on October 30, 2026.
 
-## Fastest path from a machine with GitHub access
+## Repository contents
 
-1. Extract the source ZIP into a new folder, or clone the supplied `.bundle` to retain the original commit history.
-2. Install and authenticate the [GitHub CLI](https://cli.github.com/) (`gh auth login`).
-3. In the project folder run:
+- Complete TypeScript/SQLite application server and domain model: `src/`
+- Operational desktop and mobile UI: `public/`
+- Three synthetic RFP packages, including a scan and deadline amendment: `fixtures/`
+- PDF/OCR and fixture tools: `tools/`
+- Integration tests: `tests/`
+- Documentation and screenshots: `docs/`
+- A secrets-free `.env.example`, `.gitignore`, `package.json`, and `tsconfig.json`
+
+The original source bundle was committed locally as `aabe159` before publishing. The remote history was initialized with a README and then written through GitHub's Git data API, so the remote commit SHA is **different from the offline bundle SHA**; the release files were compared by Git blob hashes.
+
+## Clone and run
 
 ```bash
-git init -b main             # skip if you cloned the Git bundle
-git add .
-git commit -m "Harborline Evidence Edition v0.2" # skip if the commit already exists
-gh repo create harborline-rfp-review --public --source=. --remote=origin --push
-```
-
-If the repository name is taken, pick another name. When cloning the Git bundle instead, use:
-
-```bash
-git clone harborline-evidence-edition-v0.2.bundle harborline-rfp-review
+git clone https://github.com/trukwava/harborline-rfp-review.git
 cd harborline-rfp-review
-gh repo create harborline-rfp-review --public --source=. --remote=origin --push
+python -m pip install pymupdf pillow pytesseract
+npm run dev
+# Open http://127.0.0.1:4173
 ```
 
-Alternatively, use GitHub's **New repository** UI with the name `harborline-rfp-review`, public visibility and *without* auto-creating a README, then add the remote and push `main`.
+Requires Node.js 22.16+, Python 3.11+, and a system Tesseract OCR executable. Run `npm test` for integration tests. No paid services or production credentials are required. The repository does **not** contain a hosted deployment.
 
 ## Release and security checklist
 
-- Public contents are a **synthetic-data demo only**. The RFPs, organizations and personas are fictional; user-supplied private PDFs are not included.
-- `data/`, `.env`, `node_modules/`, local SQLite state and uploads are ignored. Check `git status` before subsequent pushes.
-- No real authentication is implemented. Role selection is a demo simulation and server only binds loopback. **Do not host publicly.**
-- Do not commit real organization profiles, credential files, production funder records, database snapshots, or user uploads.
-- Generated screenshots show synthetic sample content.
-- No open-source license is added without the owner's explicit choice. Public visibility alone does not license reuse.
-- Continue shipping changes through reviewed commits/PRs once a GitHub remote exists.
+- Public contents contain **fictional solicitations, organizations and reviewer personas only**. No production user PDFs, user data, credentials or private keys are included.
+- `data/`, `.env`, `node_modules/`, local SQLite state and uploads are ignored and excluded from the published source.
+- **Do not deploy this server to the public Internet.** Reviewer identities are simulated, not authenticated; production organization isolation, user management, secure upload processing and retention controls remain unfinished.
+- Do not commit real organization profiles, credential files, production funder records, database snapshots or user uploads.
+- Screenshots show synthetic sample content.
+- No open-source license has been added. Public visibility alone does not license reuse.
+- Continue changes through reviewed commits and ideally add CI before a real pilot.
