@@ -2,11 +2,13 @@
 
 **Status: working, local, synthetic-data demo — not a production grants system.**
 
-**Evidence Edition v0.2:** An editorial, source-first visual system with a dark case-file masthead, distinctive typographic hierarchy, illuminated provenance styling, accessible review readiness, filters and search, expanded source inspection, and a responsive mobile workspace. The visual style is intentionally theatrical; the underlying decision workflow remains explicit and conservative.
+**Evidence Edition v0.3:** An editorial, source-first visual system with a dark case-file masthead, distinctive typographic hierarchy, illuminated provenance styling, accessible review readiness, a source revision register, explicit citation selection, a director packet, and a responsive mobile workspace. The visual style is intentionally theatrical; the underlying decision workflow remains explicit and conservative.
 
 **Primary user:** a nonprofit grants analyst who prepares evidence-backed intake briefs for a director. **Promise:** a solicitation, its amendments, and an organization profile become a page-cited, editable review workspace and a human-authored bid/no-bid discussion record. **Assumptions:** the initial organization, issuers, opportunities, and users are fictional; no external credentials, buyers, or funder integration are available. **Smallest complete workflow:** import a PDF → extract field candidates with citations → compare explicit requirements with a versioned profile → confirm/edit fields → record a director decision → export JSON or print a brief. The riskiest dependency is reliable PDF/OCR extraction, deliberately narrowed to a deterministic, labeled demonstration adapter rather than simulated AI accuracy.
 
 ![Evidence Edition desktop workspace preview](docs/desktop-preview.png)
+
+[Source revision register](docs/revisions-preview.jpg) · [Director packet](docs/director-packet-preview.jpg)
 
 [Mobile preview](docs/mobile-preview.png)
 
@@ -34,10 +36,10 @@ The first startup seeds three fictional opportunities. Their fixtures and extrac
 
 1. **Choose an opportunity** in the left pipeline. Review the deadline, provenance, and machine-proposed fields. All values are unreviewed until a person acts.
 2. Select a field. The right panel shows its source excerpt, PDF page index, printed page label (when detected), original page preview, and OCR warning. **Confirm source** to accept the proposal, **Save edit** to record a human-supplied value, or **Mark missing / Reject** as appropriate.
-3. Select **Eligibility & decision** to examine only requirements explicitly compared with the Harbor profile. The scanned housing package intentionally reports an **unknown** HUD-approved credential. Unknown never silently becomes pass.
+3. Select **Source revisions** to compare amendments side-by-side, inspect any original or amended page, and explicitly confirm a particular cited source version. A previously accepted source is never silently relabeled as a newer amendment. Select **Eligibility & decision** to examine only requirements explicitly compared with the Harbor profile. The scanned housing package intentionally reports an **unknown** HUD-approved credential. Unknown never silently becomes pass.
 4. Find work quickly with the **All / To review / Verified / Conflicts** filters, the field search, or **Next to review**. Press `/` to focus field search, `Alt+N` to advance to the next unreviewed field, and **Expand evidence** to widen the source panel. All reviewer actions remain subject to the same backend validation and audit trail.
 5. Switch the header reviewer to **Avery · Director** to record *pursue*, *decline*, or *needs discussion*, with a required rationale. The analyst cannot record this decision in demo mode.
-6. Choose **Print brief** for a readable print or “Save as PDF” view, or **JSON** for a structured, editable export with field status, candidate provenance, source versions, outstanding questions, decisions, and audit events.
+6. Choose **Director packet** for a printable decision brief or “Save as PDF” view, **Packet JSON** for a structured handoff, or **JSON** for a structured, editable export with field status, candidate provenance, source versions, outstanding questions, decisions, and audit events.
 7. Click **Add PDF** to classify an original, amendment, or attachment. Duplicate content is blocked per opportunity using SHA-256. Reprocess a source from **Documents & audit** without overwriting review edits. Create a new opportunity via **New opportunity**.
 8. Open **Organization profile** to edit the declared organization facts; each save creates another version and refreshes criteria. **Reset all fictional demo reviews** restores the initial sample workspace; it does not alter non-Harbor records.
 
@@ -61,9 +63,9 @@ The first startup seeds three fictional opportunities. Their fixtures and extrac
 
 ## Test results and acceptance trace
 
-`npm test` uses Node's built-in test runner. The latest run completed **4 tests / 4 passing**, including an integrated HTTP/database workflow. The integrated test asserts: amendment precedence proposal, stale accepted-value flag, UTC normalization in/out of DST, absent fields, OCR table extraction, unsupported content ignored, verified citation excerpts, duplicate upload idempotency, reprocessing without replacing edits, malformed upload rejection, cross-organization read denial, analyst/director permission boundary, JSON/print exports, and reload-persistent records. Run it again after modifications; results here are not a claim about later environments.
+`npm test` uses Node's built-in test runner. The latest run completed **4 tests / 4 passing**, with expanded assertions for candidate-level source ownership, retained amendment citations, and packet exports, including an integrated HTTP/database workflow. The integrated test asserts: amendment precedence proposal, stale accepted-value flag, UTC normalization in/out of DST, absent fields, OCR table extraction, unsupported content ignored, verified citation excerpts, duplicate upload idempotency, reprocessing without replacing edits, malformed upload rejection, cross-organization read denial, analyst/director permission boundary, JSON/print exports, and reload-persistent records. Run it again after modifications; results here are not a claim about later environments.
 
-`tools/browser_visual_check.py` tested three SPA tabs, 23 fields, selecting a field, search, review-state filters, next-action navigation, evidence-pane expansion, the profile dialog, and desktop/mobile layout using current API snapshots injected into Chromium. Run it with `npm run test:visual` after starting the server. **Limitation:** the browser runner here blocks navigation to the local HTTP server; therefore this is a visual/component check, *not* full networked end-to-end browser verification. Actual HTTP endpoints were tested separately. Screenshots are in `docs/desktop-preview.png` and `docs/mobile-preview.png`.
+`tools/browser_visual_check.py` tested four SPA tabs, 23 fields, selecting a field, search, review-state filters, next-action navigation, evidence-pane expansion, the profile dialog, and desktop/mobile layout using current API snapshots injected into Chromium. Run it with `npm run test:visual` after starting the server. **Limitation:** the browser runner here blocks navigation to the local HTTP server; therefore this is a visual/component check, *not* full networked end-to-end browser verification. Actual HTTP endpoints were tested separately. Screenshots are in `docs/desktop-preview.png` and `docs/mobile-preview.png`.
 
 ## Implementation status / deliberate gaps
 
@@ -75,7 +77,7 @@ The first startup seeds three fictional opportunities. Their fixtures and extrac
 | Confirm/edit/missing/reject and separate human review record | Implemented |
 | Amendment precedence proposal, conflict/staleness flag, rerun idempotency | Implemented |
 | Versioned profile; preliminary pass/fail/unknown criteria | Implemented for three demo patterns; not a general eligibility engine |
-| Director decision/rationale, audit log, JSON and print export | Implemented |
+| Director decision/rationale, audit log, original JSON, attributed director packet JSON and print export | Implemented |
 | Real authentication, encrypted storage, users/teams, multi-tenant production security | **Not implemented — demo only** |
 | Configurable model extraction, structured model-output validation | Interface boundary only; no model calls configured |
 | Capability-statement PDF ingestion; automated semantic comparison | **Not implemented** (profile is edited manually) |
@@ -91,10 +93,6 @@ Built as a **new implementation** using synthetic data. No performance, adoption
 
 See [`docs/PRODUCT_AND_PILOT.md`](docs/PRODUCT_AND_PILOT.md) for scope, invariants, and a ten-RFP shadow-mode pilot.
 
-## Public GitHub repository
+## Public repository
 
-The **public source repository** is [trukwava/harborline-rfp-review](https://github.com/trukwava/harborline-rfp-review). Evidence Edition v0.2 source, synthetic PDF fixtures, desktop/mobile preview images, setup instructions, and tests were published to `main` on October 30, 2026.
-
-Clone it with `git clone https://github.com/trukwava/harborline-rfp-review.git`, install the dependencies described above, then run `npm test` and `npm run dev`. This is a **local-only demonstration**, not a publicly deployed application. Do not expose the loopback-only server to the public Internet or upload real confidential applications without implementing genuine authentication, hardened storage and processing, and a privacy/retention plan.
-
-The original offline Git bundle has its own commit lineage. The GitHub release was uploaded via the authenticated repository API into the newly created public repository; matching release files were checked against their Git blob hashes. See [the publication and security notes](docs/REPO_PUBLICATION.md).
+The official source repository is [trukwava/harborline-rfp-review](https://github.com/trukwava/harborline-rfp-review). Only synthetic fixtures and demo records belong in the public tree; generated runtime `data/`, local credentials, and dependencies remain ignored. See [`docs/RELEASE_V0_3.md`](docs/RELEASE_V0_3.md) for the current iteration and limitations. **Do not deploy this loopback-only demo as an internet-facing service.**

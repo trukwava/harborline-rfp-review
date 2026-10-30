@@ -59,15 +59,21 @@ export function makeService(dataDir=join(ROOT,'data')){
    const latest=candidates[0]||null;
    const values=[...new Set(candidates.map(c=>c.value))];
    const review=rev.get(key)||null;
+   const accepted=review?.status==='confirmed'?rows.find(r=>r.field_key===key && r.id===review.based_on_candidate_id):null;
+   const citationFor=(r:Row|null|undefined)=>r?{id:r.citation_id,excerpt:r.excerpt,pageIndex:r.page_index,printedLabel:r.printed_label,
+      documentId:r.document_id,filename:r.filename,role:r.role,method:r.method,warning:r.warning}:null;
+   // Reprocessing may create identical candidates. One visible choice per document/value is enough.
+   const choices=candidates.filter((c,i)=>candidates.findIndex(other=>other.document_id===c.document_id && other.value===c.value)===i);
    const isConflicted=values.length>1;
    return {key,label,proposed:latest?.value||null,raw:latest?.raw_value||null,
     current:review?.status==='missing'||review?.status==='rejected'?null:review?.value??latest?.value??null,
     status: review?.needs_rereview?'conflicted':review?.status??(isConflicted?'conflicted':latest?'proposed':'missing'),
     valueOrigin: review?.status==='edited'?'manual':review?.status==='confirmed'?'confirmed_source':latest?'machine_proposal':'unavailable',
     conflicts:isConflicted?values:[],review:review?{status:review.status,value:review.value,needsRereview:!!review.needs_rereview,reviewer:review.reviewer,updatedAt:review.updated_at}:null,
-    citation:latest?{id:latest.citation_id,excerpt:latest.excerpt,pageIndex:latest.page_index,printedLabel:latest.printed_label,
-      documentId:latest.document_id,filename:latest.filename,role:latest.role,method:latest.method,warning:latest.warning}:null,
-    candidates:candidates.map(c=>({id:c.id,value:c.value,citationId:c.citation_id,documentId:c.document_id,filename:c.filename,role:c.role,pageIndex:c.page_index,excerpt:c.excerpt})),
+    citation:citationFor(latest), currentCitation:citationFor(accepted),
+    candidates:choices.map(c=>({id:c.id,value:c.value,raw:c.raw_value,citationId:c.citation_id,documentId:c.document_id,
+      filename:c.filename,role:c.role,pageIndex:c.page_index,printedLabel:c.printed_label,method:c.method,
+      warning:c.warning,excerpt:c.excerpt,isAccepted:!!accepted && accepted.document_id===c.document_id && accepted.value===c.value})),
     candidateId:latest?.id||null
    };
   });
@@ -198,6 +204,29 @@ export function makeService(dataDir=join(ROOT,'data')){
  return {db,orgProfile,ensureOpportunity,addDocument,createOpportunity,getDetail,rerun,refreshDerived,audit,seedDemo,resetDemo};
 }
 
+
+/** A director's packet is a read-only projection: it never changes review decisions. */
+export function directorPacket(detail:ReturnType<ReturnType<typeof makeService>['getDetail']>){
+ const critical=['submission_deadline','eligible_applicants','geography','required_registrations','mandatory_attachments','match_requirement'];
+ const openIssues=detail.fields.filter(f=>critical.includes(f.key)&&f.status!=='confirmed'&&f.status!=='edited')
+   .map(f=>({field:f.key,label:f.label,status:f.status,reason:f.proposed?'Source proposal requires human review':'No sourced value established'}));
+ const unknownCriteria=detail.eligibility.filter(e=>e.status!=='pass').map(e=>({field:e.field_key,assessment:e.status,requirement:e.requirement,explanation:e.explanation}));
+ const fieldRevisions=detail.fields.filter(f=>f.conflicts.length>0).map(f=>({
+  field:f.key,label:f.label,currentStatus:f.status,currentValue:f.current,reviewedEvidence:f.currentCitation,
+  proposedValue:f.proposed,proposedEvidence:f.citation,alternatives:f.candidates
+ }));
+ const reviewed=detail.fields.filter(f=>f.status==='confirmed'||f.status==='edited').length;
+ return {kind:'director_review_packet',demo:true,generatedAt:new Date().toISOString(),
+  opportunity:detail.opportunity,profileVersion:detail.profile?.version??null,
+  readiness:{reviewed,total:detail.fields.length,openIssues,unknownCriteria,
+   message:openIssues.length||unknownCriteria.length?'Discussion required: unresolved requirements remain':'Critical items reviewed; director must still judge independently'},
+  revisions:fieldRevisions,
+  fields:detail.fields.map(f=>({key:f.key,label:f.label,status:f.status,acceptedOrDisplayedValue:f.current,
+   source:f.review?.status==='confirmed'?f.currentCitation:null,proposedSource:f.citation,
+   manuallySupplied:f.valueOrigin==='manual',needsRereview:!!f.review?.needsRereview})),
+  deadlines:detail.deadlines,eligibility:detail.eligibility,decisions:detail.decisions,documents:detail.documents};
+}
+
 function send(res:ServerResponse,status:number,data:unknown,contentType='application/json; charset=utf-8'){
  res.writeHead(status,{'Content-Type':contentType,'X-Content-Type-Options':'nosniff','Cache-Control':'no-store','Content-Security-Policy':"default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'self'; object-src 'none'"});
  res.end(typeof data==='string'?data:JSON.stringify(data));
@@ -265,11 +294,17 @@ export function createApp(dataDir?:string){
      const b=await body(req);const action=cleanStr(b.action);
      if(!['confirm','edit','missing','reject'].includes(action))throw Object.assign(new Error('Unknown field action'),{status:400});
      const field=service.getDetail(id,a.organization).fields.find(x=>x.key===key)!;
-     let value:string|null=null,status:string;
+     let value:string|null=null,status:string,basedOnCandidateId:number|null=null;
      if(action==='confirm'){
       if(!field.candidateId)throw Object.assign(new Error('Cannot confirm a field without source evidence; use manual edit'),{status:400});
-      if(b.candidateId!=null && Number(b.candidateId)!==field.candidateId)throw Object.assign(new Error('Stale candidate; reload review'),{status:409});
-      value=field.proposed;status='confirmed';
+      const requested=b.candidateId==null?field.candidateId:Number(b.candidateId);
+      if(!Number.isSafeInteger(requested)||requested<1)throw Object.assign(new Error('Invalid source candidate'),{status:400});
+      // Validate candidate ownership and field against the opportunity; old evidence remains selectable.
+      const candidate=db.prepare(`SELECT c.id,c.value FROM extracted_field_candidates c
+        JOIN ingestion_runs r ON r.id=c.run_id JOIN source_document_versions d ON d.id=r.document_id
+        WHERE c.id=? AND c.field_key=? AND d.opportunity_id=?`).get(requested,key,id) as Row|undefined;
+      if(!candidate)throw Object.assign(new Error('Source candidate not found for this field'),{status:404});
+      value=candidate.value;basedOnCandidateId=candidate.id;status='confirmed';
      }else if(action==='edit'){
       value=cleanStr(b.value,1200);if(!value)throw Object.assign(new Error('Edited value cannot be blank'),{status:400});status='edited';
      }else{status=action==='missing'?'missing':'rejected';}
@@ -277,8 +312,8 @@ export function createApp(dataDir?:string){
       db.prepare(`INSERT INTO field_reviews(opportunity_id,field_key,status,value,based_on_candidate_id,needs_rereview,reviewer)
         VALUES(?,?,?,?,?,0,?) ON CONFLICT(opportunity_id,field_key) DO UPDATE SET status=excluded.status,value=excluded.value,
         based_on_candidate_id=excluded.based_on_candidate_id,needs_rereview=0,reviewer=excluded.reviewer,updated_at=datetime('now')`)
-       .run(id,key,status,value,field.candidateId,a.name);
-      service.audit(id,a.name,'field_reviewed',{field:key,action,sourceCandidate:field.candidateId});
+       .run(id,key,status,value,basedOnCandidateId,a.name);
+      service.audit(id,a.name,'field_reviewed',{field:key,action,sourceCandidate:basedOnCandidateId});
      });return send(res,200,{ok:true});
     }
     if(suffix==='decisions'&&method==='POST'){
@@ -293,10 +328,30 @@ export function createApp(dataDir?:string){
      res.setHeader('Content-Disposition',`attachment; filename="opportunity-${id}-review.json"`);
      return send(res,200,{meta:{demo:true,exportedAt:new Date().toISOString(),version:1},...detail});
     }
+    if(suffix==='packet.json'&&method==='GET'){
+     res.setHeader('Content-Disposition',`attachment; filename="opportunity-${id}-director-packet.json"`);
+     return send(res,200,directorPacket(service.getDetail(id,a.organization)));
+    }
     if(suffix==='print'&&method==='GET'){
      const d=service.getDetail(id,a.organization);
-     const rows=d.fields.map(f=>`<tr><th>${htmlEscape(f.label)}</th><td>${htmlEscape(f.current||'—')}</td><td>${htmlEscape(f.status)}${f.review?.needsRereview?' • Needs re-review':''}</td><td>${htmlEscape(f.valueOrigin==='manual'?'Manual reviewer edit (source excerpt only supports the original proposal)':f.citation?`${f.citation.filename}, PDF p.${f.citation.pageIndex+1}${f.citation.printedLabel?` (printed ${f.citation.printedLabel})`:''}: ${f.citation.excerpt}`:'Manually supplied / no cited source')}</td></tr>`).join('');
-     const html=`<!doctype html><html><head><meta charset="utf-8"><title>Review brief - ${htmlEscape(d.opportunity.title)}</title><style>body{font:14px/1.5 Arial;margin:35px;color:#1e293b}h1{font-size:25px}table{width:100%;border-collapse:collapse}td,th{padding:9px;border:1px solid #cbd5e1;text-align:left;vertical-align:top}th{width:17%}small{color:#64748b}@media print{body{margin:14mm}}</style></head><body><small>SYNTHETIC DEMO • Human review required • print / save as PDF</small><h1>${htmlEscape(d.opportunity.title)}</h1><p>${htmlEscape(d.opportunity.issuer)} · Organization profile v${d.profile?.version}</p><h2>Intake fields and evidence</h2><table>${rows}</table><h2>Eligibility criteria</h2><table>${d.eligibility.map((e:any)=>`<tr><th>${htmlEscape(e.field_key)}</th><td>${htmlEscape(e.requirement)}</td><td>${htmlEscape(e.status)}: ${htmlEscape(e.org_evidence)}</td></tr>`).join('')}</table><h2>Human decision</h2><p>${htmlEscape(d.decisions[0]?.decision||'Not recorded')} — ${htmlEscape(d.decisions[0]?.rationale||'Director discussion pending')}</p><p><small>Sources: ${d.documents.map(x=>htmlEscape(`${x.filename} [id ${x.id}, SHA-256 ${x.sha256}]`)).join('; ')}. Values not explicitly confirmed are unreviewed; conflicts and missing values require resolution.</small></p></body></html>`;
+     const packet=directorPacket(d);
+     const badge=(status:string)=>`<span class="flag">${htmlEscape(status.replaceAll('_',' '))}</span>`;
+     const cite=(f:typeof d.fields[number])=>f.review?.status==='confirmed'&&f.currentCitation?
+      `${htmlEscape(f.currentCitation.filename)} · PDF p.${f.currentCitation.pageIndex+1}${f.currentCitation.printedLabel?` / printed ${htmlEscape(f.currentCitation.printedLabel)}`:''}<blockquote>${htmlEscape(f.currentCitation.excerpt)}</blockquote>${f.review?.needsRereview?'NEEDS RE-REVIEW · newer source proposal differs':''}`:
+      f.status==='edited'?'Human-supplied edit · no source attestation for edited text':
+      f.citation?`PROPOSAL ONLY · ${htmlEscape(f.citation.filename)}, PDF p.${f.citation.pageIndex+1}`:'No source available';
+     const rows=d.fields.map(f=>`<tr><th>${htmlEscape(f.label)}</th><td>${htmlEscape(f.current||'—')}<div>${badge(f.status)}</div></td><td>${cite(f)}</td></tr>`).join('');
+     const issues=packet.readiness.openIssues.map(x=>`<li>${htmlEscape(x.label)} · ${htmlEscape(x.status)} — ${htmlEscape(x.reason)}</li>`).join('')||'<li>No open critical-field issues recorded. Director judgment is still required.</li>';
+     const revisions=packet.revisions.map(r=>`<section class="revision"><h3>${htmlEscape(r.label)}</h3><div class="comparison"><div><small>EARLIER / RETAINED SOURCE</small><p>${htmlEscape(r.alternatives[r.alternatives.length-1]?.value||'—')}</p><small>${htmlEscape(r.alternatives[r.alternatives.length-1]?.filename||'')}</small></div><div><small>NEWEST PROPOSAL</small><p>${htmlEscape(r.proposedValue||'—')}</p><small>${htmlEscape(r.proposedEvidence?.filename||'')} · PDF p.${(r.proposedEvidence?.pageIndex??0)+1}</small></div></div><p><strong>Displayed value (review status shown separately):</strong> ${htmlEscape(r.currentValue||'Unreviewed')} · ${htmlEscape(r.currentStatus)}</p></section>`).join('');
+     const html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Director packet — ${htmlEscape(d.opportunity.title)}</title><style>
+      @page{size:A4;margin:15mm}*{box-sizing:border-box}body{margin:0;color:#183b36;background:#f5f6f0;font:13px/1.6 system-ui,Arial,sans-serif}main{max-width:1050px;margin:auto;background:white;padding:48px}header{background:#12382f;color:#e8ede4;padding:36px 38px;margin:-48px -48px 35px}header small{letter-spacing:2px;color:#bad4bd;font-weight:700}h1{font:normal 39px/1.12 Georgia,serif;margin:12px 0}h2{font:normal 24px Georgia,serif;padding-bottom:8px;border-bottom:1px solid #cbd9d1}h3{font:normal 19px Georgia,serif;margin-bottom:8px}p{overflow-wrap:anywhere}small{font-size:10px;color:#778d84}header small{color:#b8d3bb}.hero-facts{display:flex;gap:30px;flex-wrap:wrap;margin-top:25px}.hero-facts strong{font-size:23px;display:block}section{margin:27px 0;break-inside:avoid}table{width:100%;border-collapse:collapse}td,th{padding:10px;vertical-align:top;border-bottom:1px solid #dce6e0;text-align:left;overflow-wrap:anywhere}th{width:18%;color:#34594e}.flag{display:inline-block;background:#eef4ed;color:#466957;font-size:10px;text-transform:uppercase;letter-spacing:.7px;padding:2px 6px;margin-top:5px}blockquote{margin:5px 0;color:#54766b;font:italic 12px/1.5 Georgia,serif}.warning{border-left:4px solid #b98d4f;background:#fcf6ec;padding:15px 18px}.comparison{display:grid;grid-template-columns:1fr 1fr;gap:13px}.comparison>div{background:#f1f6f1;border:1px solid #dce7db;padding:15px}.comparison p{font:normal 17px Georgia,serif;margin:7px 0}.revision{break-inside:avoid}footer{border-top:1px solid #dce7df;padding-top:20px;font-size:11px;color:#637e71}@media print{body{background:white}main{padding:0}header{margin:0 0 25px;padding:25px;print-color-adjust:exact;-webkit-print-color-adjust:exact}.warning,.comparison>div{print-color-adjust:exact;-webkit-print-color-adjust:exact}button{display:none}}@media(max-width:650px){main{padding:18px}header{margin:-18px -18px 25px;padding:24px}h1{font-size:28px}.comparison{grid-template-columns:1fr}table{font-size:11px}}
+      </style></head><body><main><header><small>HARBORLINE / EVIDENCE EDITION / DIRECTOR'S PACKET</small><h1>${htmlEscape(d.opportunity.title)}</h1><p>${htmlEscape(d.opportunity.issuer)} · Synthetic organization profile v${packet.profileVersion??'—'}</p><div class="hero-facts"><div><small>FIELD REVIEWS</small><strong>${packet.readiness.reviewed}/${packet.readiness.total}</strong></div><div><small>CRITICAL ISSUES</small><strong>${packet.readiness.openIssues.length}</strong></div><div><small>NON-PASS CRITERIA</small><strong>${packet.readiness.unknownCriteria.length}</strong></div></div></header>
+      <section class="warning"><strong>DECISION SUPPORT ONLY · HUMAN REVIEW REQUIRED</strong><p>${htmlEscape(packet.readiness.message)}. Machine-proposed values are not verified. Unknown is never treated as pass.</p><ul>${issues}</ul></section>
+      <section><h2>01 / Decision record</h2><p><strong>${htmlEscape(String(d.decisions[0]?.decision??'No decision recorded').replaceAll('_',' ')||'No decision recorded')}</strong> — ${htmlEscape(d.decisions[0]?.rationale||'Director rationale pending')}</p><small>${htmlEscape(d.decisions[0]?.actor||'Not yet signed')} · ${htmlEscape(d.decisions[0]?.created_at||'Unrecorded')}</small></section>
+      <section><h2>02 / Source revisions</h2>${revisions||'<p>No conflicting source values recorded.</p>'}</section>
+      <section><h2>03 / Eligibility and unresolved evidence</h2><table>${d.eligibility.map(e=>`<tr><th>${htmlEscape(String(e.field_key).replaceAll('_',' '))}</th><td>${htmlEscape(e.status)} · ${htmlEscape(e.requirement)}</td><td>${htmlEscape(e.org_evidence)} · ${htmlEscape(e.explanation)}</td></tr>`).join('')}</table></section>
+      <section><h2>04 / Field-by-field attestation</h2><table>${rows}</table></section>
+      <footer><strong>Retained source versions</strong><p>${d.documents.map(x=>htmlEscape(`${x.filename} · ${x.role} · SHA-256 ${x.sha256}`)).join('<br>')}</p><p>Source citations refer to PDF page indices (one-based) and printed page labels where available. Manual edits are not represented as source quotations. This demo is not an eligibility certification or an official grant application.</p></footer></main></body></html>`;
      return send(res,200,html,'text/html; charset=utf-8');
     }
    }

@@ -49,3 +49,58 @@ html{scroll-behavior:smooth}body{background:#f1f3ef;background-image:radial-grad
 @media(max-width:780px){.workspace-layout{grid-template-columns:minmax(0,1fr)}.opportunity-rail{min-height:auto}.detail-area{min-height:0}.review-workspace,.detail-area.focus-evidence .review-workspace{grid-template-columns:minmax(0,1fr)}.opp-list{overflow-x:auto}.hero-bottom{align-items:center}}
 .mobile-profile{display:none}
 @media(max-width:780px){.sidebar{display:none}.main-shell{width:100%}.mobile-profile{display:inline-flex;flex:none;background:#f0f7f2;border:1px solid #d6e6d8;border-radius:5px;color:#285f50;padding:8px;font-weight:800;font-size:11px}.topbar{padding:10px 14px}.topbar select{max-width:132px;font-size:11px}.top-crumb strong{max-width:115px}.content{padding:14px}.hero-main{gap:12px}.hero-tally{min-width:82px}.hero-tally-label{letter-spacing:.4px}.hero-principles span{font-size:8px}.detail-tabs{gap:15px;padding:0 17px}.tab{font-size:10px}.tab-right{display:none}}
+
+/* Evidence Edition v0.3 — amendment atelier and deliberate provenance typography */
+.tab-counter{display:inline-grid;place-items:center;min-width:17px;height:17px;margin-left:4px;padding:0 5px;background:#e9f1e8;color:#295a48;border-radius:9px;font-size:9px;line-height:1}
+.version-chooser{margin-top:17px;padding:16px;border:1px solid #d6e4d8;border-radius:9px;background:linear-gradient(145deg,#f7faf5,#ecf4ee)}
+.version-chooser h4{font:normal 20px/1.2 Georgia,serif;margin:7px 0;color:#214539}
+.version-chooser>p{font-size:11px;color:#667c72;margin:0 0 11px}
+.revision-kicker{font-size:10px!important;font-weight:800;letter-spacing:1.7px;text-transform:uppercase;color:#aa895b}
+.version-choices{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(175px,1fr))}
+.version-option{display:flex;flex-direction:column;gap:7px;min-width:0;background:white;border:1px solid #d8e7d8;border-radius:7px;padding:14px;text-align:left;transition:border-color .15s,box-shadow .15s}
+.version-option.active{border-color:#1d8b71;box-shadow:inset 0 0 0 1px #1d8b71,0 7px 19px #1c775319}
+.version-option strong{color:#24483f;font:normal 16px/1.36 Georgia,serif;overflow-wrap:anywhere}
+.version-option small{font-size:10px;color:#718b7c;overflow-wrap:anywhere}
+.version-seal{font-size:9px;letter-spacing:1.2px;font-weight:850;color:#998060}
+.accepted-flag{font-size:9px;color:#267359;font-weight:850;letter-spacing:.5px}
+.accepted-evidence{font-size:11px;color:#3b7160;background:#eff7ef;border-left:3px solid #4b9874;padding:10px 13px;margin-top:12px;overflow-wrap:anywhere}
+.accepted-evidence span{display:block;font-size:9px;font-weight:850;letter-spacing:1.2px;margin-bottom:4px}
+.revision-ledger{padding:0;background:#fdfefa;min-width:0}
+.revision-masthead{position:relative;overflow:hidden;background:radial-gradient(circle at 96% 18%,#246c526b,transparent 36%),linear-gradient(115deg,#122e29,#154738);color:#fff;padding:37px clamp(20px,4vw,45px) 28px}
+.revision-masthead:after{content:'↔';position:absolute;right:5%;top:-85px;font:normal 280px Georgia,serif;color:#ffffff0a;pointer-events:none}
+.revision-masthead .revision-kicker{color:#dabd89}
+.revision-masthead h3{font:normal clamp(28px,3.2vw,46px)/1.08 Georgia,serif;max-width:670px;margin:10px 0 14px;letter-spacing:-.8px}
+.revision-masthead p{color:#c9dfd1;font-size:13px;max-width:640px;line-height:1.65}
+.revision-stats{display:flex;gap:clamp(16px,5vw,55px);flex-wrap:wrap;margin-top:30px;border-top:1px solid #ffffff2c;padding-top:21px}
+.revision-stats>div{display:flex;flex-direction:column;gap:5px}
+.revision-stats strong{font:normal 32px Georgia,serif;color:#f0e7d2}
+.revision-stats span{font-size:9px;letter-spacing:1.2px;font-weight:850;color:#b8d0c2}
+.revision-timeline{padding:18px clamp(18px,3vw,36px);display:grid;gap:0;border-bottom:1px solid #d8e3d9;background:#f4f7f1}
+.timeline-node{display:flex;gap:17px;align-items:center;padding:12px 0;border-bottom:1px solid #dbe5dc;min-width:0}
+.timeline-node:last-child{border-bottom:0}
+.timeline-order{width:45px;height:45px;display:grid;place-items:center;border:1px solid #b6cfc0;border-radius:50%;flex:none;font:normal 23px Georgia,serif;color:#3c7662}
+.timeline-node>div{display:flex;flex:1;flex-direction:column;gap:3px;min-width:0;overflow-wrap:anywhere}
+.timeline-node b{color:#284d40;font-size:13px}
+.timeline-node small{font-size:10px;color:#7c9084}
+.revision-table-head{padding:34px clamp(18px,3vw,36px) 19px;display:flex;justify-content:space-between;align-items:end;gap:25px}
+.revision-table-head h3{font:normal 28px Georgia,serif;color:#21493c;margin:8px 0 0}
+.revision-table-head p{max-width:260px;color:#6a8573;font-size:12px}
+.change-card{margin:0 clamp(18px,3vw,36px) 18px;border:1px solid #d7e3d9;border-radius:10px;background:white;overflow:hidden;box-shadow:0 14px 35px #234b3311}
+.change-label{display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:18px 22px;border-bottom:1px solid #e5ece6}
+.change-label h4{font:normal 21px Georgia,serif;color:#285347;margin:0;flex:1}
+.change-pair{display:grid;grid-template-columns:minmax(0,1fr) 38px minmax(0,1fr);align-items:stretch;padding:14px;gap:6px}
+.change-version{text-align:left;display:flex;flex-direction:column;gap:7px;border-radius:7px;background:#f5f8f5;border:1px solid #dfe9e0;padding:18px;min-width:0;color:#285044}
+.change-version.newer{background:#ecf5ed;border-color:#c4d9c8}
+.change-version:hover{outline:2px solid #81ad93;outline-offset:-2px}
+.change-version strong{font:normal clamp(16px,2vw,23px)/1.24 Georgia,serif;overflow-wrap:anywhere;flex:1}
+.change-version small{font-size:10px;color:#728d7f;overflow-wrap:anywhere}
+.change-stage{font-size:9px;color:#937950;letter-spacing:1.4px;font-weight:900}
+.change-arrow{align-self:center;text-align:center;font:normal 29px Georgia,serif;color:#b39057}
+.change-footer{background:#fbfcf9;padding:12px 19px;display:flex;gap:13px;justify-content:space-between;align-items:center;border-top:1px solid #e4eae2}
+.change-footer span{font-size:11px;color:#628074;overflow-wrap:anywhere}
+.change-footer b{color:#335a48}
+.revision-bottom-note{margin:10px 35px 0;padding:15px 0 28px;color:#718d79;font-size:11px}
+@media(max-width:780px){.detail-tabs{flex-wrap:wrap;gap:4px 15px}.revision-table-head{display:block}.revision-table-head p{max-width:none}.revision-masthead{padding:25px}.revision-stats{gap:19px}.change-pair{grid-template-columns:1fr;gap:6px}.change-arrow{transform:rotate(90deg);line-height:1}.change-footer{align-items:start;flex-direction:column}.version-choices{grid-template-columns:1fr}}
+
+/* Keep primary document actions legible against the dark accent fill. */
+.button.primary{color:#fff}

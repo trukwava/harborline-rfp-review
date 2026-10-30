@@ -51,6 +51,17 @@ with sync_playwright() as p:
  page.locator('[data-field-filter=all]').click()
  page.evaluate('''data=>{let im=document.querySelector('.source-preview img'); if(im) im.src='data:image/jpeg;base64,'+data;}''',img)
  page.screenshot(path=str(root/'docs/desktop-preview.png'),full_page=True)
+ page.locator('button[data-tab="revisions"]').click()
+ assert 'Every revision leaves a trace' in page.locator('.revision-masthead').inner_text()
+ assert page.locator('.revision-stats').count()==1
+ page.locator('[data-select-opp="3"]').click()
+ page.wait_for_timeout(200)
+ page.locator('button[data-tab="revisions"]').click()
+ assert page.locator('.change-card').count()>=1, 'Amended example must show changed claims'
+ page.screenshot(path=str(root/'docs/revisions-preview.png'),full_page=True)
+ page.locator('.change-version').first.click()
+ assert page.locator('.version-chooser .version-option').count()>=2, 'All versions remain inspectable'
+ assert 'November 20' in page.locator('.evidence-pane').inner_text(), 'Selected original evidence must be inspectable'
  page.locator('button[data-tab="eligibility"]').click()
  assert 'Explicit requirement comparison' in page.locator('.panel-content').inner_text()
  page.locator('button[data-tab="history"]').click()
@@ -59,7 +70,7 @@ with sync_playwright() as p:
  page.locator('button[data-field="award_maximum"]').click()
  assert 'Award maximum' in page.locator('.evidence-pane h3').inner_text()
  assert not errors,errors
- print('Browser visual component check: PASS (3 tabs, 23 fields, field selection); screenshot saved')
+ print('Browser visual component check: PASS (4 tabs, 23 fields, amendment comparison and citation inspection)')
  browser.close()
  browser=p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--single-process'])
  page2=browser.new_page(viewport={'width':390,'height':844},device_scale_factor=1)
