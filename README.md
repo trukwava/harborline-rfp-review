@@ -91,6 +91,10 @@ Built as a **new implementation** using synthetic data. No performance, adoption
 
 See [`docs/PRODUCT_AND_PILOT.md`](docs/PRODUCT_AND_PILOT.md) for scope, invariants, and a ten-RFP shadow-mode pilot.
 
-## Public repository publication
+## Public GitHub repository
 
-This source tree contains **only synthetic fixtures and demo records**, and the generated runtime `data/`, local credentials, and dependencies are ignored. The project is committed locally, but **no remote GitHub repository has been created or pushed from this environment** because its GitHub connector lacks repository creation and outbound network connectivity is unavailable. See [`docs/REPO_PUBLICATION.md`](docs/REPO_PUBLICATION.md) for precise publication commands and final security warnings. **Do not deploy this loopback-only demo as an internet-facing service.**
+The **public source repository** is [trukwava/harborline-rfp-review](https://github.com/trukwava/harborline-rfp-review). Evidence Edition v0.2 source, synthetic PDF fixtures, desktop/mobile preview images, setup instructions, and tests were published to `main` on October 30, 2026.
+
+Clone it with `git clone https://github.com/trukwava/harborline-rfp-review.git`, install the dependencies described above, then run `npm test` and `npm run dev`. This is a **local-only demonstration**, not a publicly deployed application. Do not expose the loopback-only server to the public Internet or upload real confidential applications without implementing genuine authentication, hardened storage and processing, and a privacy/retention plan.
+
+The original offline Git bundle has its own commit lineage. The GitHub release was uploaded via the authenticated repository API into the newly created public repository; matching release files were checked against their Git blob hashes. See [the publication and security notes](docs/REPO_PUBLICATION.md).
