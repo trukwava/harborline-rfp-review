@@ -89,7 +89,7 @@ The first startup seeds three fictional opportunities. Their fixtures and extrac
 
 ## Reference and provenance
 
-Built as a **new implementation** using synthetic data. No performance, adoption, customer, or regulatory claims are inferred or repeated. Every sample agency, recipient, email domain, and grant fact is synthetic. No customer outreach or deployment was performed.
+Built as a **new implementation** for an RFP review workflow. No external performance, adoption, customer or regulatory claims are asserted. Every sample agency, recipient, email domain and grant fact is synthetic. No customer outreach or deployment was performed.
 
 See [`docs/PRODUCT_AND_PILOT.md`](docs/PRODUCT_AND_PILOT.md) for scope, invariants, and a ten-RFP shadow-mode pilot.
 
