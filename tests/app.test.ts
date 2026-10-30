@@ -125,3 +125,23 @@ test('full intake, amendment, review persistence, idempotency, isolation and exp
   assert.equal(persisted.status,'edited');assert.equal(persisted.value,'Manually corrected with analyst notes');reopened.close();
  }finally{await new Promise<void>(resolve=>server.close(()=>resolve()));service.db.close();rmSync(temp,{recursive:true,force:true});}
 });
+
+
+test('demo boundary rejects cross-origin and cross-site writes, with restrictive cookie',async()=>{
+ const temp=mkdtempSync(join(tmpdir(),'harbor-boundary-test-'));
+ const {server,service}=createApp(temp);
+ server.listen(0,'127.0.0.1');await once(server,'listening');
+ const port=(server.address() as {port:number}).port;
+ const endpoint=`http://127.0.0.1:${port}/api/session`;
+ try{
+  const hostile=await fetch(endpoint,{method:'POST',headers:{Origin:'https://attacker.example','Content-Type':'application/json'},body:JSON.stringify({actor:'harbor-director'})});
+  assert.equal(hostile.status,403);
+  const crossSite=await fetch(endpoint,{method:'POST',headers:{'Sec-Fetch-Site':'cross-site','Content-Type':'application/json'},body:JSON.stringify({actor:'harbor-director'})});
+  assert.equal(crossSite.status,403);
+  const sameOrigin=await fetch(endpoint,{method:'POST',headers:{Origin:`http://127.0.0.1:${port}`,'Content-Type':'application/json'},body:JSON.stringify({actor:'harbor-analyst'})});
+  assert.equal(sameOrigin.status,200);
+  assert.match(sameOrigin.headers.get('set-cookie')||'',/SameSite=Strict/);
+  assert.equal(sameOrigin.headers.get('x-frame-options'),'DENY');
+  assert.equal(sameOrigin.headers.get('referrer-policy'),'no-referrer');
+ }finally{server.close();service.db.close();rmSync(temp,{recursive:true,force:true});}
+});
