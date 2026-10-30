@@ -228,7 +228,7 @@ export function directorPacket(detail:ReturnType<ReturnType<typeof makeService>[
 }
 
 function send(res:ServerResponse,status:number,data:unknown,contentType='application/json; charset=utf-8'){
- res.writeHead(status,{'Content-Type':contentType,'X-Content-Type-Options':'nosniff','Cache-Control':'no-store','Content-Security-Policy':"default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'self'; object-src 'none'"});
+ res.writeHead(status,{'Content-Type':contentType,'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','X-Frame-Options':'DENY','Cache-Control':'no-store','Content-Security-Policy':"default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'self'; object-src 'none'"});
  res.end(typeof data==='string'?data:JSON.stringify(data));
 }
 function htmlEscape(s:unknown){return String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]!));}
@@ -244,16 +244,39 @@ function actorFor(req:IncomingMessage){
  return {name,...actor};
 }
 
+// The demo has intentionally impersonable actors. It must never be internet-exposed.
+// A trusted production identity provider must replace this entire demo boundary.
+function assertLocalDemoRequest(req:IncomingMessage){
+ const remote=req.socket.remoteAddress||'';
+ if(!['127.0.0.1','::1','::ffff:127.0.0.1'].includes(remote))
+  throw Object.assign(new Error('Demo server accepts loopback clients only'),{status:403});
+ const host=String(req.headers.host||'');
+ if(!/^(localhost|127\.0\.0\.1|\[::1\])(?::[0-9]{1,5})?$/i.test(host))
+  throw Object.assign(new Error('Invalid demo host'),{status:403});
+ const origin=req.headers.origin;
+ if(origin){
+  let parsed:URL;
+  try{parsed=new URL(origin)}catch{throw Object.assign(new Error('Invalid Origin'),{status:403});}
+  if(parsed.protocol!=='http:'||parsed.host!==host || !['localhost','127.0.0.1','[::1]'].includes(parsed.hostname))
+   throw Object.assign(new Error('Cross-origin demo request rejected'),{status:403});
+ }
+ // Browsers send Sec-Fetch-Site; this also blocks navigation/form based CSRF
+ // when a forged Origin is omitted. Non-browser clients remain demo-only.
+ if(req.headers['sec-fetch-site']==='cross-site' && !['GET','HEAD','OPTIONS'].includes(req.method||''))
+  throw Object.assign(new Error('Cross-site mutation rejected'),{status:403});
+}
+
 export function createApp(dataDir?:string){
  if(process.env.DEMO_MODE==='false')throw new Error('Connected mode is not implemented; refusing to run without demo-only authentication.');
  const service=makeService(dataDir);service.seedDemo();const {db}=service;
  const server=http.createServer(async(req,res)=>{
   try{
+   assertLocalDemoRequest(req);
    const url=new URL(req.url||'/', 'http://localhost');const path=url.pathname;
    const a=actorFor(req); const method=req.method||'GET';
    if(path==='/api/session' && method==='POST'){
     const b=await body(req);if(!ACTORS[b.actor])throw Object.assign(new Error('Invalid actor'),{status:400});
-    res.setHeader('Set-Cookie',`demo_user=${b.actor}; Path=/; SameSite=Lax; HttpOnly`);
+    res.setHeader('Set-Cookie',`demo_user=${b.actor}; Path=/; SameSite=Strict; HttpOnly`);
     return send(res,200,{actor:b.actor,role:ACTORS[b.actor].role});
    }
    if(path==='/api/session' && method==='GET')return send(res,200,{actor:a.name,role:a.role,organization:a.organization,demo:true});
