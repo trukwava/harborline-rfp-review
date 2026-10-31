@@ -1,6 +1,7 @@
 import {DatabaseSync} from 'node:sqlite';
 import {mkdirSync} from 'node:fs';
 import {dirname} from 'node:path';
+import {LOCAL_AUTH_SCHEMA} from './auth.ts';
 
 export const SCHEMA = `
 PRAGMA foreign_keys=ON;
@@ -58,7 +59,7 @@ CREATE TABLE IF NOT EXISTS audit_events (
 `;
 export function openDb(path:string):DatabaseSync {
  mkdirSync(dirname(path),{recursive:true});
- const db=new DatabaseSync(path);db.exec(SCHEMA);return db;
+ const db=new DatabaseSync(path);db.exec(SCHEMA);db.exec(LOCAL_AUTH_SCHEMA);return db;
 }
 export function tx<T>(db:DatabaseSync,fn:()=>T):T{
  db.exec('BEGIN IMMEDIATE');try{const value=fn();db.exec('COMMIT');return value;}catch(e){db.exec('ROLLBACK');throw e;}

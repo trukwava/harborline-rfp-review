@@ -1,6 +1,6 @@
 # Harborline — RFP Intake & Bid/No-Bid Preparation
 
-**Status: working, local, synthetic-data demo — not a production grants system.**
+**Status: working local application with a synthetic demonstration mode and an opt-in password-authenticated localhost mode — not approved for public deployment.**
 
 **Evidence Edition v0.3:** An editorial, source-first visual system with a dark case-file masthead, distinctive typographic hierarchy, illuminated provenance styling, accessible review readiness, a source revision register, explicit citation selection, a director packet, and a responsive mobile workspace. The visual style is intentionally theatrical; the underlying decision workflow remains explicit and conservative.
 
@@ -11,6 +11,11 @@
 [Source revision register](docs/revisions-preview.jpg) · [Director packet](docs/director-packet-preview.jpg)
 
 [Mobile preview](docs/mobile-preview.png)
+
+
+## v0.5: opt-in password-authenticated local accounts
+
+The default mode remains the deterministic, fictional demo. To use separate persisted identities and tenant memberships on **localhost only**, first provision an account offline (`npm run provision:local`, with `HARBOR_USER_EMAIL`, `HARBOR_USER_PASSWORD`, `HARBOR_ORGANIZATION`, and `HARBOR_USER_ROLE` set in the environment); then run `AUTH_MODE=local DEMO_MODE=false npm run dev`. See [v0.5 release and operating guide](docs/RELEASE_V0_5.md). The service still listens on loopback only; this is not production authentication, and no internet deployment is approved. Local mode does not prepopulate fictional funding opportunities.
 
 ## Run locally
 
@@ -59,11 +64,11 @@ The first startup seeds three fictional opportunities. Their fixtures and extrac
 - **Evidence:** every machine candidate has a foreign-keyed citation to a page and an excerpt checked against stored source text. Human edits are separately labeled and audited. Role, content hash, and page indexes survive exports. Source amendments append, never replace the original.
 - **Decisions:** three deterministic demo checks (501(c)(3), NYC geography, HUD-approved counseling credential), explicitly labeled preliminary. No numerical AI confidence scores; unknown stays unknown; a director must explicitly decide.
 - **Time:** timezone-aware deadlines normalize to UTC instants, while the original wording and zone remain stored. Date-only and unparsed deadlines are not treated as timestamps.
-- **Security boundary:** loopback-only demo with a simulated persona cookie, organization-scoped SQLite queries, 8 MB PDF limit, no remote API calls, escaped text rendering, no model-driven actions, and no raw document payloads in audit logs. There is **no actual login/security model**. `DEMO_MODE=false` deliberately refuses to start.
+- **Security boundary:** loopback-only demo with a simulated persona cookie, organization-scoped SQLite queries, 8 MB PDF limit, no remote API calls, escaped text rendering, no model-driven actions, and no raw document payloads in audit logs. The default demo has impersonable actors; `AUTH_MODE=local` provides separate opt-in password identities, while still restricting access to loopback. Remote production deployment remains unsupported.
 
 ## Test results and acceptance trace
 
-`npm test` uses Node's built-in test runner. The latest run completed **4 tests / 4 passing**, with expanded assertions for candidate-level source ownership, retained amendment citations, and packet exports, including an integrated HTTP/database workflow. The integrated test asserts: amendment precedence proposal, stale accepted-value flag, UTC normalization in/out of DST, absent fields, OCR table extraction, unsupported content ignored, verified citation excerpts, duplicate upload idempotency, reprocessing without replacing edits, malformed upload rejection, cross-organization read denial, analyst/director permission boundary, JSON/print exports, and reload-persistent records. Run it again after modifications; results here are not a claim about later environments.
+`npm test` uses Node's built-in test runner. The latest run completed **6 tests / 6 passing**, with expanded assertions for candidate-level source ownership, retained amendment citations, and packet exports, including an integrated HTTP/database workflow. The integrated test asserts: amendment precedence proposal, stale accepted-value flag, UTC normalization in/out of DST, absent fields, OCR table extraction, unsupported content ignored, verified citation excerpts, duplicate upload idempotency, reprocessing without replacing edits, malformed upload rejection, cross-organization read denial, analyst/director permission boundary, JSON/print exports, and reload-persistent records. Run it again after modifications; results here are not a claim about later environments.
 
 `tools/browser_visual_check.py` tested four SPA tabs, 23 fields, selecting a field, search, review-state filters, next-action navigation, evidence-pane expansion, the profile dialog, and desktop/mobile layout using current API snapshots injected into Chromium. Run it with `npm run test:visual` after starting the server. **Limitation:** the browser runner here blocks navigation to the local HTTP server; therefore this is a visual/component check, *not* full networked end-to-end browser verification. Actual HTTP endpoints were tested separately. Screenshots are in `docs/desktop-preview.png` and `docs/mobile-preview.png`.
 

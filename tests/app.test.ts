@@ -145,3 +145,69 @@ test('demo boundary rejects cross-origin and cross-site writes, with restrictive
   assert.equal(sameOrigin.headers.get('referrer-policy'),'no-referrer');
  }finally{server.close();service.db.close();rmSync(temp,{recursive:true,force:true});}
 });
+
+test('local identity: provisioned accounts, hashed sessions, memberships, logout and restart',async()=>{
+ const {provisionLocalUser}=await import('../src/auth.ts');
+ const {openDb}=await import('../src/db.ts');
+ const temp=mkdtempSync(join(tmpdir(),'harbor-local-auth-'));
+ const storage=join(temp,'review.sqlite');
+ const db=openDb(storage);
+ const password='unique-local-password-longer-than-12';
+ const u1=provisionLocalUser(db,{email:'Director@Example.test',password,organization:'north-org',role:'director'});
+ const u2=provisionLocalUser(db,{email:'analyst@example.test',password:'longer-than-12-analyst-pass',organization:'north-org',role:'analyst'});
+ const u3=provisionLocalUser(db,{email:'remote@example.test',password:'longer-than-12-remote-pass',organization:'south-org',role:'director'});
+ assert.equal(u1.email,'director@example.test');
+ assert.equal(u2.role,'analyst');assert.equal(u3.organization,'south-org');
+ assert.throws(()=>provisionLocalUser(db,{email:'director@example.test',password,organization:'south-org',role:'director'}),/Account exists/);
+ const row=db.prepare('SELECT * FROM local_users WHERE email=?').get(u1.email) as any;
+ assert.ok(!Object.values(row).some(v=>typeof v==='string'&&v.includes(password)));
+ db.close();
+ const {server,service}=createApp(temp,{authMode:'local'});
+ server.listen(0,'127.0.0.1');await once(server,'listening');
+ const address=server.address() as {port:number};
+ const endpoint=`http://127.0.0.1:${address.port}`;
+ async function send(path:string,method='GET',data?:unknown,cookie='',headers:Record<string,string>={}){
+  const result=await fetch(endpoint+path,{method,headers:{...(data?{'Content-Type':'application/json'}:{}),...(cookie?{Cookie:cookie}:{}),...headers},body:data?JSON.stringify(data):undefined});
+  const type=result.headers.get('content-type')||'';
+  return {status:result.status,body:type.includes('json')?await result.json():await result.text(),cookie:result.headers.get('set-cookie')||''};
+ }
+ try{
+  assert.equal((await send('/')).status,200);
+  assert.equal((await send('/api/session')).status,401);
+  assert.equal((await send('/api/opportunities')).status,401);
+  assert.equal((await send('/api/auth/login','POST',{email:'Director@Example.test',password:'incorrect-password'})).status,401);
+  assert.equal((await send('/api/auth/login','POST',{email:'director@example.test',password},'', {'x-demo-user':'harbor-director'})).status,403);
+  const signed=await send('/api/auth/login','POST',{email:'director@example.test',password});
+  assert.equal(signed.status,200);assert.equal(signed.body.role,'director');assert.equal(signed.body.demo,false);
+  assert.match(signed.cookie,/HttpOnly/);assert.match(signed.cookie,/SameSite=Strict/);
+  const cookie=signed.cookie.split(';')[0];
+  assert.equal((await send('/api/session','GET',undefined,cookie)).body.organization,'north-org');
+  assert.equal((await send('/api/session','GET',undefined,cookie,{'x-demo-user':'harbor-analyst'})).status,403);
+  const dbSession=service.db.prepare('SELECT token_hash FROM local_sessions').get() as any;
+  assert.notEqual(dbSession.token_hash,cookie.split('=')[1]);
+  const created=await send('/api/opportunities','POST',{title:'Local org grant',issuer:'Local fictional issuer'},cookie);
+  assert.equal(created.status,201);const id=created.body.id;
+  const analyst=await send('/api/auth/login','POST',{email:u2.email,password:'longer-than-12-analyst-pass'});
+  const analystCookie=analyst.cookie.split(';')[0];
+  assert.equal((await send(`/api/opportunities/${id}`,'GET',undefined,analystCookie)).status,200);
+  assert.equal((await send(`/api/opportunities/${id}/decisions`,'POST',{decision:'decline',rationale:'Cannot authorize the grant'},analystCookie)).status,403);
+  assert.equal((await send(`/api/opportunities/${id}/decisions`,'POST',{decision:'needs_discussion',rationale:'Need further evidence'},cookie)).status,201);
+  const foreign=await send('/api/auth/login','POST',{email:u3.email,password:'longer-than-12-remote-pass'});
+  const foreignCookie=foreign.cookie.split(';')[0];
+  assert.equal((await send(`/api/opportunities/${id}`,'GET',undefined,foreignCookie)).status,404);
+  assert.equal((await send('/api/opportunities','GET',undefined,foreignCookie)).body.opportunities.length,0);
+  assert.equal((await send('/api/reset-demo','POST',{},cookie)).status,404);
+  assert.equal((await send('/api/auth/login','POST',{email:u1.email,password},undefined,{'Origin':'https://evil.test'})).status,403);
+  // Session persisted to SQLite; revocation of membership immediately removes access.
+  const reopened=openDb(storage);
+  assert.equal((reopened.prepare('SELECT COUNT(*) AS count FROM local_sessions').get() as any).count,3);
+  reopened.prepare('UPDATE local_memberships SET active=0 WHERE user_id=? AND organization_id=?').run(u1.id,'north-org');
+  assert.equal((await send('/api/session','GET',undefined,cookie)).status,401);
+  reopened.prepare('UPDATE local_memberships SET active=1 WHERE user_id=? AND organization_id=?').run(u1.id,'north-org');
+  reopened.close();
+  assert.equal((await send('/api/session','GET',undefined,cookie)).status,200);
+  assert.equal((await send('/api/auth/logout','POST',{},cookie)).status,200);
+  assert.equal((await send('/api/session','GET',undefined,cookie)).status,401);
+  assert.equal((await send('/api/session','GET',undefined,analystCookie)).status,200);
+ }finally{await new Promise<void>(resolve=>server.close(()=>resolve()));service.db.close();rmSync(temp,{recursive:true,force:true});}
+});

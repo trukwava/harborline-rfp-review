@@ -104,3 +104,15 @@ html{scroll-behavior:smooth}body{background:#f1f3ef;background-image:radial-grad
 
 /* Keep primary document actions legible against the dark accent fill. */
 .button.primary{color:#fff}
+
+/* Local identity: intentionally designed as a first-class part of the case-file experience. */
+.local-signin{max-width:580px;margin:8vh auto;padding:clamp(24px,4vw,52px);border:1px solid #c6d8d1;border-radius:16px;background:linear-gradient(138deg,#f8fbf5 0%,#e7f2e9 100%);box-shadow:0 25px 75px rgba(9,41,33,.12)}
+.local-signin h2{font:normal clamp(33px,5vw,58px)/1.06 Georgia,serif;letter-spacing:-.03em;margin:16px 0;color:#183d33}
+.local-signin p{max-width:46ch;color:#4e6c60}
+.local-signin form{display:grid;gap:12px;margin-top:26px}
+.local-signin .button{justify-self:start;margin-top:12px}
+.local-signin .login-feedback{color:#8d413c;min-height:1.3em}
+[hidden]{display:none!important}
+.auth-required .opportunity-rail,.auth-required #new-opportunity,.auth-required #nav-opportunities,.auth-required #nav-profile,.auth-required #mobile-profile{display:none!important}
+.auth-required .workspace-layout{grid-template-columns:minmax(0,1fr)}
+.auth-required .detail-area{width:100%;min-width:0}

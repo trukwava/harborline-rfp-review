@@ -2,6 +2,7 @@ import http, {type IncomingMessage,type ServerResponse} from 'node:http';
 import {readFileSync,writeFileSync,existsSync,copyFileSync,mkdirSync,unlinkSync} from 'node:fs';
 import {join,resolve,basename,extname} from 'node:path';
 import {createHash} from 'node:crypto';
+import {loginLocal,localActor,logoutLocal,readCookies} from './auth.ts';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {openDb,tx} from './db.ts';
@@ -22,7 +23,7 @@ const ACTORS:Record<string,{organization:string;role:string}>={
 const MAX_BYTES=8*1024*1024;
 const cleanStr=(v:unknown,max=300)=>typeof v==='string'?v.trim().slice(0,max):'';
 type Row=Record<string,any>;
-export function makeService(dataDir=join(ROOT,'data')){
+export function makeService(dataDir=resolve(process.env.DATA_DIR||join(ROOT,'data'))){
  const db=openDb(join(dataDir,'review.sqlite'));
  const uploads=join(dataDir,'uploads'),previews=join(dataDir,'previews');
  mkdirSync(uploads,{recursive:true});mkdirSync(previews,{recursive:true});
@@ -182,16 +183,24 @@ export function makeService(dataDir=join(ROOT,'data')){
    audit:db.prepare('SELECT actor,event_type,payload_json,created_at FROM audit_events WHERE opportunity_id=? ORDER BY id DESC LIMIT 30').all(id),
    profile:orgProfile(organization)};
  }
+ function ensureLocalProfile(organization:string){
+  if(!orgProfile(organization)){
+   const empty:OrganizationProfile={name:'Local Grants Team (profile unverified)',version:1,
+    mission:'',geography:'',credentials:[],negative_evidence:[],notes:'Created for local account setup; add verified organizational evidence before using comparisons.'};
+   db.prepare('INSERT OR IGNORE INTO organization_profile_versions(organization_id,version,data_json) VALUES(?,?,?)')
+    .run(organization,1,JSON.stringify(empty));
+  }
+ }
  function seedDemo(){
   if(!orgProfile('harbor-demo'))db.prepare('INSERT INTO organization_profile_versions(organization_id,version,data_json) VALUES(?,?,?)').run('harbor-demo',1,JSON.stringify(DEFAULT_PROFILE));
-  if((db.prepare("SELECT COUNT(*) AS n FROM opportunities WHERE organization_id='harbor-demo'").get() as Row).n>0)return;
   const fixtures:[string,string,string,string,string[]][]=[
    ['Neighborhood Stabilization Microgrants','City Community Initiatives Office (fictional)','', '01-neighborhood-stability.pdf',[]],
    ['Housing Navigation Capacity Fund','Community Housing Alliance (fictional)','', '02-housing-scan.pdf',[]],
    ['Workforce Pathways Partnership','Regional Opportunity Partnership (fictional)','', '03-workforce-base.pdf',['03-workforce-amendment.pdf']]
   ];
   for(const [title,issuer,url,base,amendments] of fixtures){
-   const {id}=createOpportunity('harbor-demo',title,issuer,url||null,'system');
+   const existing=db.prepare('SELECT id FROM opportunities WHERE organization_id=? AND title=? AND issuer=?').get('harbor-demo',title,issuer) as Row|undefined;
+   const {id}=existing?{id:Number(existing.id)}:createOpportunity('harbor-demo',title,issuer,url||null,'system');
    addDocument(id,'harbor-demo',base,readFileSync(join(FIXTURES,base)),'base','system');
    for(const file of amendments)addDocument(id,'harbor-demo',file,readFileSync(join(FIXTURES,file)),'amendment','system');
   }
@@ -201,7 +210,7 @@ export function makeService(dataDir=join(ROOT,'data')){
   tx(db,()=>{db.prepare("DELETE FROM opportunities WHERE organization_id='harbor-demo'").run();db.prepare("DELETE FROM organization_profile_versions WHERE organization_id='harbor-demo'").run();});
   seedDemo();return {reset:true};
  }
- return {db,orgProfile,ensureOpportunity,addDocument,createOpportunity,getDetail,rerun,refreshDerived,audit,seedDemo,resetDemo};
+ return {db,orgProfile,ensureOpportunity,addDocument,createOpportunity,getDetail,rerun,refreshDerived,audit,seedDemo,resetDemo,ensureLocalProfile};
 }
 
 
@@ -238,7 +247,7 @@ async function body(req:IncomingMessage):Promise<any>{
  try{return JSON.parse(Buffer.concat(chunks).toString()||'{}')}catch{throw Object.assign(new Error('Invalid JSON'),{status:400});}
 }
 function actorFor(req:IncomingMessage){
- const cookies=Object.fromEntries((req.headers.cookie||'').split(';').map(c=>c.trim().split('=').map(decodeURIComponent)).filter(([k,v])=>k&&v));
+ const cookies=readCookies(req);
  const name=String(req.headers['x-demo-user']||cookies.demo_user||'harbor-analyst');
  const actor=ACTORS[name];if(!actor)throw Object.assign(new Error('Unknown demo user'),{status:403});
  return {name,...actor};
@@ -266,20 +275,42 @@ function assertLocalDemoRequest(req:IncomingMessage){
   throw Object.assign(new Error('Cross-site mutation rejected'),{status:403});
 }
 
-export function createApp(dataDir?:string){
- if(process.env.DEMO_MODE==='false')throw new Error('Connected mode is not implemented; refusing to run without demo-only authentication.');
- const service=makeService(dataDir);service.seedDemo();const {db}=service;
+export function createApp(dataDir?:string, options?:{authMode?:'demo'|'local'}){
+ const authMode=options?.authMode??(process.env.AUTH_MODE==='local'?'local':'demo');
+ if(!['local','demo'].includes(authMode))throw new Error('Unsupported authentication mode');
+ if(process.env.DEMO_MODE==='false' && authMode==='demo')throw new Error('DEMO_MODE=false requires explicit AUTH_MODE=local');
+ const service=makeService(dataDir);if(authMode==='demo')service.seedDemo();const {db}=service;
  const server=http.createServer(async(req,res)=>{
   try{
    assertLocalDemoRequest(req);
    const url=new URL(req.url||'/', 'http://localhost');const path=url.pathname;
-   const a=actorFor(req); const method=req.method||'GET';
-   if(path==='/api/session' && method==='POST'){
+   const method=req.method||'GET';
+   // Static files contain no private data; serve the sign-in application before authentication.
+   if(authMode==='local' && method==='GET' && !path.startsWith('/api/')){
+    const file=path==='/'?'index.html':path.slice(1);const full=resolve(ROOT,'public',file);
+    if(!full.startsWith(resolve(ROOT,'public')+'/')||!existsSync(full))return send(res,404,{error:'Not found'});
+    const type=extname(full)==='.js'?'text/javascript':extname(full)==='.css'?'text/css':'text/html';
+    return send(res,200,readFileSync(full).toString(),`${type}; charset=utf-8`);
+   }
+   if(authMode==='local' && path==='/api/auth/login' && method==='POST'){
+    if(req.headers['x-demo-user'])throw Object.assign(new Error('Demo user header is unavailable'),{status:403});
+    const b=await body(req);const signed=loginLocal(db,b.email,b.password);
+    service.ensureLocalProfile(signed.actor.organization);
+    res.setHeader('Set-Cookie',`harbor_session=${signed.token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=43200`);
+    return send(res,200,{actor:signed.actor.name,role:signed.actor.role,organization:signed.actor.organization,demo:false});
+   }
+   if(authMode==='local' && path==='/api/auth/logout' && method==='POST'){
+    logoutLocal(db,req);res.setHeader('Set-Cookie','harbor_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0');
+    return send(res,200,{ok:true});
+   }
+   const a=authMode==='local'?localActor(db,req):actorFor(req);
+   if(authMode==='local')service.ensureLocalProfile(a.organization);
+   if(authMode==='demo' && path==='/api/session' && method==='POST'){
     const b=await body(req);if(!ACTORS[b.actor])throw Object.assign(new Error('Invalid actor'),{status:400});
     res.setHeader('Set-Cookie',`demo_user=${b.actor}; Path=/; SameSite=Strict; HttpOnly`);
     return send(res,200,{actor:b.actor,role:ACTORS[b.actor].role});
    }
-   if(path==='/api/session' && method==='GET')return send(res,200,{actor:a.name,role:a.role,organization:a.organization,demo:true});
+   if(path==='/api/session' && method==='GET')return send(res,200,{actor:a.name,role:a.role,organization:a.organization,demo:authMode==='demo'});
    if(path==='/api/opportunities' && method==='GET'){
     const list=db.prepare(`SELECT o.*, (SELECT COUNT(*) FROM source_document_versions d WHERE d.opportunity_id=o.id) AS document_count,
      (SELECT decision FROM review_decisions r WHERE r.opportunity_id=o.id ORDER BY r.id DESC LIMIT 1) AS decision
@@ -301,7 +332,7 @@ export function createApp(dataDir?:string){
      for(const {id} of ids){service.refreshDerived(id,a.organization);service.audit(id,a.name,'profile_version_created',{version:next.version});}
     });return send(res,200,next);
    }
-   if(path==='/api/reset-demo'&&method==='POST')return send(res,200,service.resetDemo(a.organization));
+   if(authMode==='demo' && path==='/api/reset-demo'&&method==='POST')return send(res,200,service.resetDemo(a.organization));
    const m=path.match(/^\/api\/opportunities\/(\d+)(?:\/(.*))?$/);
    if(m){
     const id=Number(m[1]);service.ensureOpportunity(id,a.organization);
@@ -411,5 +442,5 @@ export function createApp(dataDir?:string){
  return {server,service};
 }
 if(process.argv[1] && resolve(process.argv[1])===fileURLToPath(import.meta.url)){
- const port=Number(process.env.PORT||'4173');createApp().server.listen(port,'127.0.0.1',()=>console.log(`Harbor RFP Review (DEMO ONLY): http://127.0.0.1:${port}`));
+ const port=Number(process.env.PORT||'4173');const mode=process.env.AUTH_MODE==='local'?'LOCAL PASSWORD MODE':'DEMO ONLY';createApp().server.listen(port,'127.0.0.1',()=>console.log(`Harbor RFP Review (${mode} — loopback only): http://127.0.0.1:${port}`));
 }
