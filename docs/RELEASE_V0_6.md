@@ -12,7 +12,7 @@ Make the evidence-workflow interface feel like a purpose-designed editorial inst
 - Restructured fixed desktop navigation and responsive mobile presentation; no browser horizontal overflow at 390 or 1440 pixel widths in visual checks.
 - Real keyboard command palette (Ctrl/Cmd+K) supporting opportunity navigation, tab jumps, profile view, opportunity creation, and advancing to the next review field. Client-side commands are derived only from opportunities already returned for the authorized session.
 - Keyboard and Escape handling, dialog semantics, visible focus, reduced-motion mode, explicit auth-locked palette behavior.
-- Release screenshots: `docs/atelier-desktop.png`, `docs/atelier-mobile.png`, `docs/atelier-command-desktop.png`, `docs/atelier-command-mobile.png`.
+- Release screenshots are included in the downloadable v0.6 source archive: `docs/atelier-desktop.png`, `docs/atelier-mobile.png`, `docs/atelier-command-desktop.png`, and `docs/atelier-command-mobile.png`. The repository README uses the portable `docs/atelier-cover.svg` artwork.
 
 ## Verification
 

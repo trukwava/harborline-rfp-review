@@ -2,15 +2,15 @@
 
 **Status: working local application with a synthetic demonstration mode and an opt-in password-authenticated localhost mode — not approved for public deployment.**
 
-**Evidence Edition v0.3:** An editorial, source-first visual system with a dark case-file masthead, distinctive typographic hierarchy, illuminated provenance styling, accessible review readiness, a source revision register, explicit citation selection, a director packet, and a responsive mobile workspace. The visual style is intentionally theatrical; the underlying decision workflow remains explicit and conservative.
+**Evidence Atelier v0.6:** An editorial, source-first visual system with a dark case-file masthead, distinctive typographic hierarchy, illuminated provenance styling, accessible review readiness, a source revision register, explicit citation selection, a director packet, and a responsive mobile workspace. The visual style is intentionally theatrical; the underlying decision workflow remains explicit and conservative.
 
 **Primary user:** a nonprofit grants analyst who prepares evidence-backed intake briefs for a director. **Promise:** a solicitation, its amendments, and an organization profile become a page-cited, editable review workspace and a human-authored bid/no-bid discussion record. **Assumptions:** the initial organization, issuers, opportunities, and users are fictional; no external credentials, buyers, or funder integration are available. **Smallest complete workflow:** import a PDF → extract field candidates with citations → compare explicit requirements with a versioned profile → confirm/edit fields → record a director decision → export JSON or print a brief. The riskiest dependency is reliable PDF/OCR extraction, deliberately narrowed to a deterministic, labeled demonstration adapter rather than simulated AI accuracy.
 
-![Evidence Atelier desktop workspace preview](docs/atelier-desktop.png)
+![Harborline Evidence Atelier visual identity](docs/atelier-cover.svg)
 
 [Source revision register](docs/revisions-preview.jpg) · [Director packet](docs/director-packet-preview.jpg)
 
-[Mobile preview](docs/atelier-mobile.png) · [Keyboard navigation preview](docs/atelier-command-desktop.png)
+Current desktop, mobile, and keyboard-navigation screenshots are included in the v0.6 source distribution.
 
 
 ## v0.5: opt-in password-authenticated local accounts

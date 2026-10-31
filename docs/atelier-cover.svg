@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="410" viewBox="0 0 1200 410" role="img" aria-labelledby="title desc">
+<title id="title">Harborline — The Evidence Atelier</title>
+<desc id="desc">An editorial maritime-green masthead with warm gold typography and orbital source geometry.</desc>
+<defs>
+<linearGradient id="sea" x1="0" y1="0" x2="1" y2=".9"><stop stop-color="#102e31"/><stop offset=".7" stop-color="#133b39"/><stop offset="1" stop-color="#225246"/></linearGradient>
+<linearGradient id="gold" x1="0" x2="1" y2="1"><stop stop-color="#f3dfb6"/><stop offset="1" stop-color="#d3b47c"/></linearGradient>
+<pattern id="grid" width="93" height="93" patternUnits="userSpaceOnUse"><path d="M93 0H0V93" fill="none" stroke="#e2eaca" stroke-opacity=".1"/></pattern>
+</defs>
+<rect width="1200" height="410" rx="14" fill="url(#sea)"/>
+<rect x="12" y="12" width="1176" height="386" rx="8" fill="none" stroke="#e7d4a7" stroke-opacity=".28"/>
+<rect x="510" width="690" height="410" fill="url(#grid)"/>
+<g fill="none" stroke="#e4c997"><circle cx="839" cy="184" r="222" stroke-opacity=".16"/><circle cx="839" cy="184" r="165" stroke-opacity=".22"/><circle cx="839" cy="184" r="103" stroke-opacity=".36"/><circle cx="839" cy="184" r="38" stroke-opacity=".56"/></g>
+<g stroke="#f5dfb3" stroke-width="1.5" stroke-opacity=".8" transform="translate(839 184)"><path d="M0 -22V22M-22 0H22M-16 -16L16 16M-16 16L16 -16"/></g><circle cx="839" cy="184" r="5" fill="#edd6ab"/>
+<path d="M35 61H1165M35 340H1165" stroke="#e6d8b3" stroke-opacity=".3"/>
+<text x="37" y="39" fill="#e6e1ca" font-family="Arial,sans-serif" font-size="12" font-weight="700" letter-spacing="3">HARBORLINE / GRANTS INTELLIGENCE</text>
+<text x="982" y="39" fill="#e5d2aa" font-family="Arial,sans-serif" font-size="10" letter-spacing="1.5">THE EVIDENCE ATELIER</text>
+<text x="38" y="107" fill="#c7dac9" font-family="Arial,sans-serif" font-size="10" letter-spacing="2.8">✳  THE GRANTS REVIEW STUDIO</text>
+<text x="36" y="187" fill="#fbf8ed" font-family="Georgia,serif" font-size="75" letter-spacing="-3">Every claim.</text>
+<text x="36" y="269" fill="url(#gold)" font-family="Georgia,serif" font-style="italic" font-size="76" letter-spacing="-3">Accounted for.</text>
+<text x="38" y="313" fill="#c5d8cf" font-family="Arial,sans-serif" font-size="13">Review the facts. Trace the evidence. Preserve every revision.</text>
+<text x="39" y="372" fill="#d9e4d8" font-family="Arial,sans-serif" font-size="10" letter-spacing="1.9">•  SOURCE FIRST</text>
+<text x="210" y="372" fill="#d9e4d8" font-family="Arial,sans-serif" font-size="10" letter-spacing="1.9">•  HUMAN DECISION</text>
+<text x="407" y="372" fill="#d9e4d8" font-family="Arial,sans-serif" font-size="10" letter-spacing="1.9">•  VERSION SAFE</text>
+<text x="910" y="370" fill="#b8ccb8" font-family="Arial,sans-serif" font-size="9" letter-spacing="2">SOURCE SYSTEM / 001</text>
+</svg>
