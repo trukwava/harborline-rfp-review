@@ -7,15 +7,86 @@ function toast(message,error=false){const el=$('#toast');el.textContent=message;
 async function api(path,options={}){const response=await fetch(path,{headers:{...(options.body?{'Content-Type':'application/json'}:{})},...options,credentials:'same-origin'});const json=await response.json();if(!response.ok){const error=new Error(json.error||`HTTP ${response.status}`);error.status=response.status;throw error;}return json;}
 function showLogin(){
  document.body.classList.add('auth-required');
- $('#hero-count').textContent='—';$('#pipeline-count').textContent='—';$('#nav-count').textContent='—';$('.sidebar-info strong').textContent='Private local workspace';$('.sidebar-info p').textContent='Sign in with a provisioned account to access organization records.';$('.sidebar-bottom strong').textContent='Identity required';$('.sidebar-bottom small').textContent='Local access only';$('.hero-tally-caption').textContent='SIGN IN TO VIEW YOUR CASE FILES';$('.site-footer').textContent='HARBORLINE / EVIDENCE EDITION v0.5 · LOCAL ACCOUNT MODE · NOT APPROVED FOR INTERNET DEPLOYMENT';
+ $('#hero-count').textContent='—';$('#pipeline-count').textContent='—';$('#nav-count').textContent='—';$('.sidebar-info strong').textContent='Private local workspace';$('.sidebar-info p').textContent='Sign in with a provisioned account to access organization records.';$('.sidebar-bottom strong').textContent='Identity required';$('.sidebar-bottom small').textContent='Local access only';$('.hero-tally-caption').textContent='SIGN IN TO VIEW YOUR CASE FILES';$('.site-footer').textContent='HARBORLINE / EVIDENCE ATELIER v0.6 · LOCAL ACCOUNT MODE · NOT APPROVED FOR INTERNET DEPLOYMENT';
  $('#detail-area').innerHTML=`<section class="local-signin" aria-labelledby="signin-title"><div class="section-serial">HARBORLINE / LOCAL IDENTITY</div><h2 id="signin-title">Enter your workspace.</h2><p>Authenticated local mode. Use a provisioned account; public sign-up is disabled.</p><form id="login-form"><label class="form-label" for="login-email">Email</label><input class="input" id="login-email" autocomplete="username" type="email" required maxlength="254"><label class="form-label" for="login-password">Password</label><input class="input" id="login-password" type="password" autocomplete="current-password" required><button class="button primary" type="submit">Sign in →</button><p class="login-feedback" id="login-feedback" role="alert" aria-live="polite"></p></form></section>`;
  $('#actor-select').hidden=true;$('#signout').hidden=true;$('#auth-label').textContent='LOCAL ACCOUNT / LOCKED';
 }
 function displayIdentity(){
  document.body.classList.remove('auth-required');
- if(!S.session.demo){$('#actor-select').hidden=true;$('#signout').hidden=false;$('#auth-label').textContent=`${S.session.role.toUpperCase()} / ${S.session.actor}`;$('.sidebar-info strong').textContent='Local workspace';$('.sidebar-info p').textContent='Only members of this organization can access its records.';$('.sidebar-bottom strong').textContent=S.session.organization;$('.sidebar-bottom small').textContent='Password-authenticated local account';$('.hero-tally-caption').textContent='IN YOUR ORGANIZATION';$('.site-footer').textContent='HARBORLINE / EVIDENCE EDITION v0.5 · LOCAL ACCOUNT MODE · NOT APPROVED FOR INTERNET DEPLOYMENT';}
+ if(!S.session.demo){$('#actor-select').hidden=true;$('#signout').hidden=false;$('#auth-label').textContent=`${S.session.role.toUpperCase()} / ${S.session.actor}`;$('.sidebar-info strong').textContent='Local workspace';$('.sidebar-info p').textContent='Only members of this organization can access its records.';$('.sidebar-bottom strong').textContent=S.session.organization;$('.sidebar-bottom small').textContent='Password-authenticated local account';$('.hero-tally-caption').textContent='IN YOUR ORGANIZATION';$('.site-footer').textContent='HARBORLINE / EVIDENCE ATELIER v0.6 · LOCAL ACCOUNT MODE · NOT APPROVED FOR INTERNET DEPLOYMENT';}
  else{$('#actor-select').hidden=false;$('#actor-select').value=S.session.actor;$('#signout').hidden=true;$('#auth-label').textContent='DETERMINISTIC DEMO';}
 }
+
+// Quick navigation is deliberately client-side: it only links to records the current
+// session was already authorized to list. No raw source text becomes a command.
+let commandOpen=false,commandActive=0,commandMatches=[],commandReturnFocus=null;
+function availableCommands(){
+ if(!S.session)return [];
+ const base=[
+  {icon:'＋',group:'ACTIONS',title:'New opportunity',detail:'Create an evidence-backed case file',action:'create'},
+  {icon:'◈',group:'ACTIONS',title:'Organization profile',detail:'Inspect versioned organizational evidence',action:'profile'}
+ ];
+ if(S.detail)base.push(
+  {icon:'↗',group:'CURRENT CASE',title:'Intake & evidence',detail:'Review extracted fields and citations',action:'tab',target:'intake'},
+  {icon:'↔',group:'CURRENT CASE',title:'Source revisions',detail:'Compare original and amended source claims',action:'tab',target:'revisions'},
+  {icon:'◇',group:'CURRENT CASE',title:'Eligibility & decision',detail:'Check criteria before a human decision',action:'tab',target:'eligibility'},
+  {icon:'⌁',group:'CURRENT CASE',title:'Documents & audit',detail:'Review processing and change history',action:'tab',target:'history'},
+  {icon:'→',group:'CURRENT CASE',title:'Next unreviewed field',detail:'Continue the current evidence review',action:'next'}
+ );
+ return [...base,...S.opportunities.map(o=>({icon:'▧',group:'CASE FILES',title:o.title,detail:o.issuer,action:'opportunity',target:o.id}))];
+}
+function closeCommand(){if(!commandOpen)return;commandOpen=false;$('#command-root').innerHTML='';document.body.classList.remove('command-open');commandReturnFocus?.focus?.();commandReturnFocus=null;}
+function renderCommandMatches(){
+ const q=$('#command-search')?.value.trim().toLocaleLowerCase()||'';
+ commandMatches=availableCommands().filter(x=>`${x.title} ${x.detail} ${x.group}`.toLocaleLowerCase().includes(q));
+ commandActive=Math.min(commandActive,Math.max(0,commandMatches.length-1));
+ const list=$('#command-results');if(!list)return;
+ list.innerHTML=commandMatches.map((c,i)=>`<button type="button" class="command-result ${i===commandActive?'active':''}" id="command-option-${i}" data-command-index="${i}" aria-selected="${i===commandActive}" role="option"><span class="command-result-icon" aria-hidden="true">${c.icon}</span><span class="command-result-copy"><small>${esc(c.group)}</small><strong>${esc(c.title)}</strong><span>${esc(c.detail)}</span></span><span class="command-result-enter" aria-hidden="true">↵</span></button>`).join('')||'<div class="command-none">Nothing found in your workspace.<br><small>Try a different case name or action.</small></div>';
+ $('#command-search')?.setAttribute('aria-activedescendant',commandMatches.length?`command-option-${commandActive}`:'');
+}
+function openCommand(){
+ if(commandOpen||!S.session)return;
+ commandOpen=true;commandActive=0;commandReturnFocus=document.activeElement;
+ document.body.classList.add('command-open');
+ $('#command-root').innerHTML=`<div class="command-backdrop" id="command-backdrop"><section class="command-dialog" role="dialog" aria-modal="true" aria-labelledby="command-title"><div class="command-heading"><span class="command-emblem" aria-hidden="true">✳</span><span id="command-title">HARBORLINE / QUICK NAVIGATION</span><button type="button" id="command-close" aria-label="Close quick navigation">Esc</button></div><label class="command-search-wrap" for="command-search"><span aria-hidden="true">⌕</span><input id="command-search" type="search" placeholder="Search case files, views, and actions…" autocomplete="off" aria-label="Search navigation commands" aria-controls="command-results" aria-activedescendant=""/><kbd>↵</kbd></label><div id="command-results" class="command-results" role="listbox" aria-label="Navigation results"></div><div class="command-foot"><span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span><span><kbd>↵</kbd> Open</span><span><kbd>Esc</kbd> Close</span></div></section></div>`;
+ renderCommandMatches();$('#command-search').focus();
+}
+async function performCommand(index){
+ const c=commandMatches[index];if(!c)return;
+ closeCommand();
+ if(c.action==='create')return showNew();
+ if(c.action==='profile')return await showProfile();
+ if(c.action==='next'){S.tab='intake';renderDetail();nextActionField();return;}
+ if(c.action==='tab'){S.tab=c.target;renderDetail();document.querySelector('.detail-tabs')?.scrollIntoView({block:'start',behavior:'smooth'});return;}
+ if(c.action==='opportunity'){S.selectedId=c.target;S.fieldKey='submission_deadline';S.evidenceCandidateId=null;S.tab='intake';renderList();await loadDetail(c.target);document.querySelector('.detail-area')?.scrollIntoView({block:'start',behavior:'smooth'});}
+}
+document.addEventListener('click',e=>{
+ if(e.target.closest('#command-trigger')){openCommand();return;}
+ if(e.target.id==='command-backdrop'||e.target.closest('#command-close')){closeCommand();return;}
+ const result=e.target.closest('[data-command-index]');if(result){execute(()=>performCommand(Number(result.dataset.commandIndex)));return;}
+});
+document.addEventListener('input',e=>{if(e.target.id==='command-search'){commandActive=0;renderCommandMatches();}});
+document.addEventListener('keydown',e=>{
+ if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){
+  e.preventDefault();commandOpen?closeCommand():openCommand();return;
+ }
+ if(!commandOpen)return;
+ if(e.key==='Tab'){
+  const focusables=[...document.querySelectorAll('#command-root button:not([disabled]),#command-root input:not([disabled])')].filter(el=>el.getClientRects().length);
+  const first=focusables[0],last=focusables[focusables.length-1];
+  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}
+  else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}
+ }
+ if(e.key==='Escape'){e.preventDefault();closeCommand();return;}
+ if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+  e.preventDefault();if(!commandMatches.length)return;
+  commandActive=(commandActive+(e.key==='ArrowDown'?1:-1)+commandMatches.length)%commandMatches.length;
+  renderCommandMatches();document.getElementById(`command-option-${commandActive}`)?.scrollIntoView({block:'nearest'});
+ } else if(e.key==='Enter'&&document.activeElement?.id==='command-search'){
+  e.preventDefault();execute(()=>performCommand(commandActive));
+ }
+});
+
 async function init(){try{S.session=await api('/api/session');displayIdentity();await loadList();}catch(e){if(e.status===401){showLogin();return;}$('#detail-area').innerHTML=`<div class="error-banner">${esc(e.message)} <button class="button compact" onclick="location.reload()">Retry</button></div>`;toast(e.message,true)}}
 async function loadList(selectId){const data=await api('/api/opportunities');S.opportunities=data.opportunities;$('#pipeline-count').textContent=String(data.opportunities.length);$('#nav-count').textContent=String(data.opportunities.length);$('#hero-count').textContent=String(data.opportunities.length).padStart(2,'0');if(selectId!==undefined)S.selectedId=selectId;else if(!S.opportunities.some(x=>x.id===S.selectedId))S.selectedId=S.opportunities[0]?.id||null;renderList();if(S.selectedId)await loadDetail(S.selectedId);else renderEmpty()}
 function renderList(){$('#opportunity-list').innerHTML=S.opportunities.map((o,i)=>`<button class="opp-item ${o.id===S.selectedId?'active':''}" data-select-opp="${o.id}" aria-pressed="${o.id===S.selectedId}"><span class="opp-upper"><span class="item-sequence">${String(i+1).padStart(2,'0')}</span><span class="opp-doc-count">${o.document_count} SOURCE${o.document_count===1?'':'S'}</span></span><span class="organization">${esc(o.issuer)}</span><span class="name">${esc(o.title)}</span><span class="opp-meta"><span><span class="status-dot" style="background:${o.decision?'#1caa82':'#c79e64'}"></span>${o.decision?esc(fmt(o.decision)):'Awaiting review'}</span><span class="opp-arrow" aria-hidden="true">↗</span></span></button>`).join('')||'<p class="empty-message">No opportunities yet.</p>'}

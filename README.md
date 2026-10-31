@@ -6,16 +6,25 @@
 
 **Primary user:** a nonprofit grants analyst who prepares evidence-backed intake briefs for a director. **Promise:** a solicitation, its amendments, and an organization profile become a page-cited, editable review workspace and a human-authored bid/no-bid discussion record. **Assumptions:** the initial organization, issuers, opportunities, and users are fictional; no external credentials, buyers, or funder integration are available. **Smallest complete workflow:** import a PDF → extract field candidates with citations → compare explicit requirements with a versioned profile → confirm/edit fields → record a director decision → export JSON or print a brief. The riskiest dependency is reliable PDF/OCR extraction, deliberately narrowed to a deterministic, labeled demonstration adapter rather than simulated AI accuracy.
 
-![Evidence Edition desktop workspace preview](docs/desktop-preview.png)
+![Evidence Atelier desktop workspace preview](docs/atelier-desktop.png)
 
 [Source revision register](docs/revisions-preview.jpg) · [Director packet](docs/director-packet-preview.jpg)
 
-[Mobile preview](docs/mobile-preview.png)
+[Mobile preview](docs/atelier-mobile.png) · [Keyboard navigation preview](docs/atelier-command-desktop.png)
 
 
 ## v0.5: opt-in password-authenticated local accounts
 
 The default mode remains the deterministic, fictional demo. To use separate persisted identities and tenant memberships on **localhost only**, first provision an account offline (`npm run provision:local`, with `HARBOR_USER_EMAIL`, `HARBOR_USER_PASSWORD`, `HARBOR_ORGANIZATION`, and `HARBOR_USER_ROLE` set in the environment); then run `AUTH_MODE=local DEMO_MODE=false npm run dev`. See [v0.5 release and operating guide](docs/RELEASE_V0_5.md). The service still listens on loopback only; this is not production authentication, and no internet deployment is approved. Local mode does not prepopulate fictional funding opportunities.
+
+
+### Evidence Atelier v0.6 — interaction & visual craft
+
+The public-source application now uses an offline-ready typographic design system: maritime green, warm paper, brass detailing, cartographic geometry, clarified hierarchy, legible evidence panels, and restrained motion with a reduced-motion fallback. Desktop navigation remains visible while mobile collapses into a stacked review workspace.
+
+Use **⌘K** (Mac) or **Ctrl+K** (Windows/Linux) to search only the opportunities authorized to your current session, jump to the current case's review tabs, open the profile, create a new opportunity, or advance to the next unreviewed field. Esc closes the palette; arrow keys and Enter work from search. This is local UI navigation, not an AI search or a document-content search. The sign-in screen does not offer an inoperative palette.
+
+The Evidence Atelier is still a local demo / local-account application; the public repository does not mean a publicly hosted service. See [release verification and limitations](docs/RELEASE_V0_6.md).
 
 ## Run locally
 
@@ -94,7 +103,7 @@ The first startup seeds three fictional opportunities. Their fixtures and extrac
 
 ## Reference and provenance
 
-Built as a **new implementation** for an RFP review workflow. No external performance, adoption, customer or regulatory claims are asserted. Every sample agency, recipient, email domain and grant fact is synthetic. No customer outreach or deployment was performed.
+Built as a **new implementation** using synthetic data. No performance, adoption, customer, or regulatory claims are inferred or repeated. Every sample agency, recipient, email domain, and grant fact is synthetic. No customer outreach or deployment was performed.
 
 See [`docs/PRODUCT_AND_PILOT.md`](docs/PRODUCT_AND_PILOT.md) for scope, invariants, and a ten-RFP shadow-mode pilot.
 

@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#102e30">
+  <meta name="description" content="Harborline is a source-first grants review studio. Every claim is traceable; every decision remains human.">
   <title>Harborline · RFP Review</title>
   <link rel="stylesheet" href="/styles.css">
   <script defer src="/app.js"></script>
@@ -20,23 +22,23 @@
   <div class="main-shell">
    <header class="topbar">
     <div class="top-crumb"><span>WORKSPACE</span><span class="chevron">/</span><strong id="crumb">Opportunities</strong></div>
-    <div class="top-actions"><button class="mobile-profile" id="mobile-profile" type="button">◈ Profile</button><div class="demo-label"><span class="small-pulse"></span><span id="auth-label">DETERMINISTIC DEMO</span></div><button class="button compact" id="signout" type="button" hidden>Sign out</button><label for="actor-select" class="visually-hidden">Current reviewer</label><select id="actor-select" aria-label="Current reviewer"><option value="harbor-analyst">Maya · Analyst</option><option value="harbor-director">Avery · Director</option><option value="other-analyst">Other organization · test</option></select></div>
+    <div class="top-actions"><button class="command-trigger" id="command-trigger" type="button" aria-label="Open quick navigation"><span class="command-icon" aria-hidden="true">⌕</span><span class="command-caption">Quick navigate</span><kbd>⌘ K</kbd></button><button class="mobile-profile" id="mobile-profile" type="button">◈ Profile</button><div class="demo-label"><span class="small-pulse"></span><span id="auth-label">DETERMINISTIC DEMO</span></div><button class="button compact" id="signout" type="button" hidden>Sign out</button><label for="actor-select" class="visually-hidden">Current reviewer</label><select id="actor-select" aria-label="Current reviewer"><option value="harbor-analyst">Maya · Analyst</option><option value="harbor-director">Avery · Director</option><option value="other-analyst">Other organization · test</option></select></div>
    </header>
    <main class="content">
     <section class="page-intro" aria-labelledby="hero-title">
-      <div class="hero-geometry" aria-hidden="true"><span class="halo halo-one"></span><span class="halo halo-two"></span><span class="halo halo-three"></span><span class="hero-star">✳</span></div>
-      <div class="hero-topline"><span class="eyebrow">HARBORLINE / GRANTS INTELLIGENCE</span><span class="hero-edition">THE EVIDENCE EDITION · 2027</span></div>
-      <div class="hero-main"><div class="hero-copy"><span class="hero-overtitle">OPPORTUNITY REVIEW WORKSPACE</span><h1 id="hero-title">Every claim.<br><em>Accounted for.</em></h1><p>Make a deliberate decision from a verifiable record. Extract the facts, challenge the evidence, preserve every revision.</p></div><div class="hero-tally"><span class="hero-tally-label">ACTIVE CASE FILES</span><strong id="hero-count" aria-live="polite">—</strong><span class="hero-tally-caption">IN THIS SYNTHETIC WORKSPACE</span></div></div>
+      <div class="hero-geometry" aria-hidden="true"><span class="halo halo-one"></span><span class="halo halo-two"></span><span class="halo halo-three"></span><span class="hero-star">✳</span><span class="orbit-coordinate">40° 49′ N &nbsp; / &nbsp; SOURCE SYSTEM</span></div>
+      <div class="hero-topline"><span class="eyebrow">HARBORLINE / GRANTS INTELLIGENCE</span><span class="hero-edition">THE EVIDENCE ATELIER · VOL. 01</span></div>
+      <div class="hero-main"><div class="hero-copy"><span class="hero-overtitle"><span class="hero-small-sun" aria-hidden="true">✳</span> THE GRANTS REVIEW STUDIO</span><h1 id="hero-title">Every claim.<br><em>Accounted for.</em></h1><p>Make a deliberate decision from a verifiable record. Extract the facts, challenge the evidence, preserve every revision.</p></div><div class="hero-tally"><span class="hero-tally-label">ACTIVE CASE FILES</span><strong id="hero-count" aria-live="polite">—</strong><span class="hero-tally-caption">IN THIS SYNTHETIC WORKSPACE</span></div></div>
       <div class="hero-bottom"><div class="hero-principles"><span><i aria-hidden="true"></i> SOURCE FIRST</span><span><i aria-hidden="true"></i> HUMAN DECISION</span><span><i aria-hidden="true"></i> VERSION SAFE</span></div><button class="button hero-button" id="new-opportunity"><span aria-hidden="true">＋</span> New opportunity <span aria-hidden="true">↗</span></button></div>
     </section>
     <div class="workspace-layout">
      <section class="opportunity-rail" aria-label="Opportunity list"><div class="rail-header"><div><span class="rail-kicker">01 / CASE FILES</span><h2>Opportunity ledger</h2><p>Select a record to inspect</p></div><span id="pipeline-count" class="count-pill">—</span></div><div id="opportunity-list" class="opp-list"><div class="loading-shimmer">Loading opportunities…</div></div><div class="rail-foot">The record informs. <strong>People decide.</strong><br>No automatic submissions.</div></section>
      <section class="detail-area" id="detail-area" aria-label="Selected opportunity"><div class="blank-state"><div class="blank-icon">▤</div><h2>Select an opportunity</h2><p>Open an intake workspace to review source-backed fields.</p></div></section>
     </div>
-    <footer class="site-footer">HARBORLINE / EVIDENCE EDITION v0.5 <span>All example funders, solicitations, and organization records are fictional.</span></footer>
+    <footer class="site-footer">HARBORLINE / EVIDENCE ATELIER v0.6 <span>All example funders, solicitations, and organization records are fictional.</span></footer>
    </main>
   </div>
  </div>
- <div id="modal-root"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>
+ <div id="modal-root"></div><div id="command-root"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>
 </body>
 </html>

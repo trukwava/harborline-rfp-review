@@ -31,6 +31,21 @@ with sync_playwright() as p:
  assert page.locator('.field-item').count()==23
  assert 'Neighborhood Stabilization' in page.locator('.detail-head h2').inner_text()
  assert page.locator('#hero-count').inner_text()=='03'
+ # A real command palette: keyboard accessible actions and authorized case navigation.
+ page.keyboard.press('Control+k')
+ assert page.locator('.command-dialog').is_visible()
+ assert page.locator('.command-result').count()>=5
+ page.locator('#command-search').fill('Source revisions')
+ assert page.locator('.command-result').count()==1
+ page.keyboard.press('Enter')
+ assert page.locator('.revision-ledger').is_visible()
+ page.keyboard.press('Control+k')
+ page.locator('#command-search').fill('Intake & evidence')
+ page.keyboard.press('Enter')
+ assert page.locator('.field-item').count()==23
+ page.locator('#command-trigger').click()
+ page.keyboard.press('Escape')
+ assert page.locator('.command-dialog').count()==0
  assert page.locator('.review-progress[role=progressbar]').count()==0  # inner track carries the aria semantics
  assert page.locator('.review-progress-track[role=progressbar]').get_attribute('aria-valuenow')=='0'
  page.locator('[data-field-filter=attention]').click()
