@@ -26,6 +26,17 @@ Use **⌘K** (Mac) or **Ctrl+K** (Windows/Linux) to search only the opportunitie
 
 The Evidence Atelier is still a local demo / local-account application; the public repository does not mean a publicly hosted service. See [release verification and limitations](docs/RELEASE_V0_6.md).
 
+## Public interactive gallery (v0.7)
+
+A **synthetic-only, GitHub Pages-ready** version of the Evidence Atelier lives in [`docs/index.html`](docs/index.html). The gallery uses three fictional source packages with page images and citation excerpts; a guided tour highlights the changed deadline, unresolved credential evidence, and human decision workflow. Browser-local review edits and director packet exports never reach a server.
+
+- Preview: `python -m http.server 8765 --directory docs`, then open `http://127.0.0.1:8765/`.
+- Regenerate test data: `npm run demo:export`.
+- Verify: `npm test` and `npm run demo:check`.
+- For hosting: GitHub **Settings → Pages → Build and deployment → Deploy from a branch → main /docs**. Do not assume this has been enabled.
+
+See [the v0.7 release note](docs/RELEASE_V0_7.md). The localhost application in `/public` and `/src` remains a separate implementation and is not intended for public deployment.
+
 ## Run locally
 
 Requires **Node.js 22.16+**, **Python 3.11+**, and Tesseract OCR. Python packages: `pymupdf`, `pillow`, `pytesseract`. Regenerating the PDF fixtures also requires `reportlab`. SQLite is built into Node 22 but emits an experimental warning on this version.
